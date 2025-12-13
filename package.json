@@ -27,10 +27,7 @@
     "rootFile": "public/locales/translation.json",
     "targetLanguages": [
       "en",
-      "de",
-      "fr",
-      "es",
-      "it"
+      "de"
     ],
     "targetRegions": [
       "NorthAfrica",

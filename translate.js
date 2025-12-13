@@ -48,6 +48,8 @@ const writeJSON = (file, data) => {
 // ---- OpenAI call -------------------------------------------
 
 async function translate(sourceJson, language) {
+  const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
+  const model = models[Math.floor(Math.random() * models.length)];
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -55,7 +57,7 @@ async function translate(sourceJson, language) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: model,
       temperature: 0,
       messages: [
         {
@@ -82,6 +84,36 @@ async function translate(sourceJson, language) {
   return JSON.parse(json.choices[0].message.content);
 }
 
+async function entropyEliminator(source, language) {
+  const version1 = await translate(source, language);
+  console.log('Getting first', version1);
+  const version2 = await translate(source, language);
+  console.log('Getting second', version2);
+
+  const cleaned = {};
+
+  // traverse both versions and pick matching entries
+  function traverse(src, v1, v2, out) {
+    for (const key of Object.keys(src)) {
+      if (typeof src[key] === 'object' && src[key] !== null) {
+        out[key] = {};
+        traverse(src[key], v1[key], v2[key], out[key]);
+      } else {
+        if (v1[key] === v2[key]) {
+          out[key] = v1[key];
+        } else {
+          console.warn(`⚠️  Mismatch at key: ${key}. Skipping entry.`);
+        }
+      }
+    }
+  }
+
+  traverse(source, version1, version2, cleaned);
+
+  console.log('🧼 Cleaned translations with entropy eliminator', cleaned);
+  return cleaned;
+}
+
 // ---- run ---------------------------------------------------
 
 (async () => {
@@ -90,6 +122,10 @@ async function translate(sourceJson, language) {
   console.log(targetLanguages);
 
   const source = readJSON(SOURCE_FILE);
+
+  entropyEliminator(source, 'fr');
+
+  return;
 
   for (const lang of targetLanguages) {
     console.log(`➡️  Language: ${lang}`);
