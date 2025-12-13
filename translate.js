@@ -62,7 +62,7 @@ async function translate(sourceJson, language) {
           role: 'system',
           content:
             'You are a localization engine. ' +
-            `Translate JSON values from English to ${language}. ` +
+            `Translate JSON values from developer English to ${language}. ` +
             'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
             'Return ONLY valid JSON.'
         },
@@ -95,6 +95,12 @@ async function translate(sourceJson, language) {
     console.log(`➡️  Language: ${lang}`);
     const translated = await translate(source, lang);
     const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
+
+    if (!fs.existsSync(targetFile)) {
+      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+      fs.writeFileSync(targetFile, '{}');
+    }
+
     writeJSON(targetFile, translated);
     console.log('✅ Done:', targetFile);
   }

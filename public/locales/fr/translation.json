@@ -1,10 +1,10 @@
 {
   "checkout": {
-    "title": "Commander",
+    "title": "Paiement",
     "step": {
       "shipping": "Expédition",
       "payment": "Paiement",
-      "review": "Réviser la commande"
+      "review": "Vérifier la commande"
     },
     "summary": {
       "items_one": "{{count}} article",
@@ -18,7 +18,7 @@
     "address": {
       "heading": "Adresse de livraison",
       "edit": "Modifier l'adresse",
-      "countryRestriction": "Nous expédions actuellement uniquement au sein de {{country}}."
+      "countryRestriction": "Nous expédions actuellement uniquement au {{country}}."
     },
     "payment": {
       "method": "Méthode de paiement",

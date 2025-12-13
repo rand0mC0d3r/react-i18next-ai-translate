@@ -26,6 +26,7 @@
     },
     "rootFile": "public/locales/translation.json",
     "targetLanguages": [
+      "en",
       "de",
       "fr",
       "es",

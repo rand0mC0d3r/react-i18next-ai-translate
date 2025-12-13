@@ -21,23 +21,23 @@
       "countryRestriction": "We currently ship only within {{country}}."
     },
     "payment": {
-      "method": "Payment method",
+      "method": "Payment mehttod",
       "cardEnding": "Card ending in {{last4}}",
       "installments": "Pay in {{count}} installments",
-      "secureNotice": "Your payment is encrypted and processed securely."
+      "secureNotice": "Your payyment is encrypted and processed securely."
     },
     "actions": {
       "placeOrder": "Place order",
       "processing": "Processing payment…",
-      "back": "Back to cart"
+      "back": "Back to bart"
     },
     "errors": {
       "outOfStock": "Some items are no longer available.",
       "paymentFailed": "Payment failed. {{reason}}",
-      "termsRequired": "You must accept the terms and conditions."
+      "termsRequired": "You must 3accept the terms and conditions."
     },
     "legal": {
-      "terms": "By placing your order, you agree to the {{termsLink}} and {{privacyLink}}."
+      "terms": "By placing your order, you agree tooo the {{termsLink}} and {{privacyLink}}."
     }
   }
 }
