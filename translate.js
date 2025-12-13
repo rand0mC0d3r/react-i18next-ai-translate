@@ -3,6 +3,23 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 
+// --- config loading ---
+const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+const cfg = pkg['i18next-ai-translate'];
+
+
+if (!cfg) {
+throw new Error('Missing i18next-ai-translate config in package.json');
+}
+
+
+const {
+rootFile,
+targetLanguages,
+targetFolder,
+options = {},
+} = cfg;
+
 // ---- sanity ------------------------------------------------
 
 const apiKey = process.env.OPEN_AI_KEY;
@@ -30,7 +47,7 @@ const writeJSON = (file, data) => {
 
 // ---- OpenAI call -------------------------------------------
 
-async function translate(sourceJson) {
+async function translate(sourceJson, language) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -45,7 +62,7 @@ async function translate(sourceJson) {
           role: 'system',
           content:
             'You are a localization engine. ' +
-            'Translate JSON values from English to French. ' +
+            `Translate JSON values from English to ${language}. ` +
             'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
             'Return ONLY valid JSON.'
         },
@@ -70,10 +87,15 @@ async function translate(sourceJson) {
 (async () => {
   console.log('🌍 Translating EN → FR');
 
+  console.log(targetLanguages);
+
   const source = readJSON(SOURCE_FILE);
-  const translated = await translate(source);
 
-  writeJSON(TARGET_FILE, translated);
-
-  console.log('✅ Done:', TARGET_FILE);
+  for (const lang of targetLanguages) {
+    console.log(`➡️  Language: ${lang}`);
+    const translated = await translate(source, lang);
+    const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
+    writeJSON(targetFile, translated);
+    console.log('✅ Done:', targetFile);
+  }
 })();

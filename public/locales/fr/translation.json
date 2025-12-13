@@ -1,6 +1,6 @@
 {
   "checkout": {
-    "title": "Paiement",
+    "title": "Commander",
     "step": {
       "shipping": "Expédition",
       "payment": "Paiement",
