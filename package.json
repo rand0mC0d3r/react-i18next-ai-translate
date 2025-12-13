@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "i18next": "^25.7.2",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
@@ -24,8 +25,17 @@
       "anthropic": ""
     },
     "rootFile": "public/locales/translation.json",
-    "targetLanguages": ["de", "fr", "es", "it"],
-    "targetRegions": ["NorthAfrica","WesternEurope","SouthEastAsia"],
+    "targetLanguages": [
+      "de",
+      "fr",
+      "es",
+      "it"
+    ],
+    "targetRegions": [
+      "NorthAfrica",
+      "WesternEurope",
+      "SouthEastAsia"
+    ],
     "useRegionsForTranslation": true,
     "targetFolder": "public/locales",
     "options": {

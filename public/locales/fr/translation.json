@@ -1,7 +1,43 @@
 {
-  "Welcome to React": "FRWelcssddSS to React and react-i18next",
-  "description": {
-    "part1": "To get started, edit <1>src/App.js</1> and save to reload.",
-    "part2": "Switch language between english and german using buttons above."
+  "checkout": {
+    "title": "Paiement",
+    "step": {
+      "shipping": "Expédition",
+      "payment": "Paiement",
+      "review": "Réviser la commande"
+    },
+    "summary": {
+      "items_one": "{{count}} article",
+      "items_other": "{{count}} articles",
+      "subtotal": "Sous-total",
+      "tax": "Taxe ({{rate}}%)",
+      "shipping": "Expédition",
+      "discount": "Remise",
+      "total": "Total"
+    },
+    "address": {
+      "heading": "Adresse de livraison",
+      "edit": "Modifier l'adresse",
+      "countryRestriction": "Nous expédions actuellement uniquement au sein de {{country}}."
+    },
+    "payment": {
+      "method": "Méthode de paiement",
+      "cardEnding": "Carte se terminant par {{last4}}",
+      "installments": "Payer en {{count}} versements",
+      "secureNotice": "Votre paiement est crypté et traité en toute sécurité."
+    },
+    "actions": {
+      "placeOrder": "Passer la commande",
+      "processing": "Traitement du paiement…",
+      "back": "Retour au panier"
+    },
+    "errors": {
+      "outOfStock": "Certains articles ne sont plus disponibles.",
+      "paymentFailed": "Échec du paiement. {{reason}}",
+      "termsRequired": "Vous devez accepter les termes et conditions."
+    },
+    "legal": {
+      "terms": "En passant votre commande, vous acceptez les {{termsLink}} et {{privacyLink}}."
+    }
   }
 }
