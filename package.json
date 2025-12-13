@@ -17,6 +17,18 @@
     "react-dom": "^19.2.0",
     "react-i18next": "^16.5.0"
   },
+  "i18next-ai-translate": {
+    "version": "0.5.3",
+    "apiKey": "sk-REDACTED",
+    "sourceLanguage": "en",
+    "targetLanguages": ["de", "fr", "es"],
+    "translationFilesPath": "public/locales/{{lng}}/translation.json",
+    "model": "gpt-4",
+    "options": {
+      "temperature": 0.3,
+      "max_tokens": 1000
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
