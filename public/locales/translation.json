@@ -1,0 +1,43 @@
+{
+  "checkout": {
+    "title": "Checkout",
+    "step": {
+      "shipping": "Shipping",
+      "payment": "Payment",
+      "review": "Review order"
+    },
+    "summary": {
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "subtotal": "Subtotal",
+      "tax": "Tax ({{rate}}%)",
+      "shipping": "Shipping",
+      "discount": "Discount",
+      "total": "Total"
+    },
+    "address": {
+      "heading": "Delivery address",
+      "edit": "Edit address",
+      "countryRestriction": "We currently ship only within {{country}}."
+    },
+    "payment": {
+      "method": "Payment method",
+      "cardEnding": "Card ending in {{last4}}",
+      "installments": "Pay in {{count}} installments",
+      "secureNotice": "Your payment is encrypted and processed securely."
+    },
+    "actions": {
+      "placeOrder": "Place order",
+      "processing": "Processing payment…",
+      "back": "Back to cart"
+    },
+    "errors": {
+      "outOfStock": "Some items are no longer available.",
+      "paymentFailed": "Payment failed. {{reason}}",
+      "termsRequired": "You must accept the terms and conditions."
+    },
+    "legal": {
+      "terms": "By placing your order, you agree to the {{termsLink}} and {{privacyLink}}."
+    }
+  }
+}
