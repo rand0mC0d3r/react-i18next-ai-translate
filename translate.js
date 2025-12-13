@@ -11,9 +11,8 @@ let engineUsedIndex = 0;
 const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
 
 if (!cfg) {
-throw new Error('Missing i18next-ai-translate config in package.json');
+  throw new Error('Missing i18next-ai-translate config in package.json');
 }
-
 
 const {
 rootFile,
@@ -34,8 +33,7 @@ if (!apiKey) {
 // ---- paths -------------------------------------------------
 
 const ROOT = process.cwd();
-const SOURCE_FILE = path.join(ROOT, 'public/locales/translation.json');
-const TARGET_FILE = path.join(ROOT, 'public/locales/fr/translation.json');
+const SOURCE_FILE = rootFile
 
 // ---- helpers -----------------------------------------------
 
@@ -53,7 +51,7 @@ async function translate(language, messages) {
   const model = models[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  console.log('Translating with model:', model, 'to', language);
+  console.log('🤖 Translating with model:', model, 'to', language);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -133,24 +131,43 @@ function traverseAndCompare(src, translated, reviewed, out) {
       if (translated[key] === reviewed[key]) {
         out[key] = translated[key];
       } else {
-        console.log(`Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
+        console.warn(`🔑 Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
         out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
       }
     }
   }
 }
 
+function traverseAndCompareNg(src, translated, reviewed, out, mismatches = []) {
+  for (const key of Object.keys(src)) {
+    if (typeof src[key] === 'object' && src[key] !== null) {
+      out[key] = {};
+      traverseAndCompareNg(src[key], translated[key], reviewed[key], out[key], mismatches);
+    } else {
+      if (translated[key] === reviewed[key]) {
+        out[key] = translated[key];
+      } else {
+        mismatches.push({ key, source: src[key], translated: translated[key], reviewed: reviewed[key] });
+        // console.warn(`🔑 Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
+        out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
+      }
+    }
+  }
+
+  return { out, mismatches };
+}
+
 async function entropyEliminator(source, language) {
   const version1 = await doTranslate(source, language);
   const version2 = await doTranslate(source, language);
 
-  const cleaned = {};
-  traverseAndCompare(source, version1, version2, cleaned);
+  const { out: cleanedOut, mismatches } = traverseAndCompareNg(source, version1, version2, {}, []);
 
-  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(cleaned, null, 2));
+  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(cleanedOut, null, 2));
+  console.table(mismatches);
 
-  const versionCleaned1 = await doReviewTranslation(cleaned, language);
-  const versionCleaned2 = await doReviewTranslation(cleaned, language);
+  const versionCleaned1 = await doReviewTranslation(cleanedOut, language);
+  const versionCleaned2 = await doReviewTranslation(cleanedOut, language);
 
   const cleaned2 = {};
   traverseAndCompare(source, versionCleaned1, versionCleaned2, cleaned2);
@@ -162,6 +179,7 @@ async function entropyEliminator(source, language) {
 // ---- run ---------------------------------------------------
 
 (async () => {
+  console.clear();
   console.log('🌍 Translating EN → FR');
 
   // console.log(targetLanguages);

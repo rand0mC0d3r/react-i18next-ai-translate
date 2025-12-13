@@ -19,11 +19,6 @@
     "react-i18next": "^16.5.0"
   },
   "i18next-ai-translate": {
-    "llmKeys": {
-      "openai": "sk-REDACTED",
-      "azure": "",
-      "anthropic": ""
-    },
     "rootFile": "public/locales/translation.json",
     "targetLanguages": [
       "en",
