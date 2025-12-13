@@ -19,7 +19,7 @@
     "react-i18next": "^16.5.0"
   },
   "i18next-ai-translate": {
-    "rootFile": "public/locales/translation.json",
+    "rootFile": "public/locales/translation.1.json",
     "targetLanguages": [
       "en",
       "de"

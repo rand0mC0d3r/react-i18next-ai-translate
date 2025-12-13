@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
+import { doTranslate, traverseAndCompareNg } from './translate_utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -47,115 +48,6 @@ const writeJSON = (file, data) => {
 
 // ---- OpenAI call -------------------------------------------
 
-async function translate(language, messages) {
-  const model = models[engineUsedIndex];
-
-  engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  console.log('🤖 Translating with model:', model, 'to', language);
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: model,
-      temperature: 0,
-      messages: messages
-    })
-  });
-
-  if (!res.ok) {
-    throw new Error(await res.text());
-  }
-
-  const json = await res.json();
-  return JSON.parse(json.choices[0].message.content);
-}
-
-async function doTranslate(source, language) {
-  const messages = [
-    {
-      role: 'system',
-      content:
-        'You are a localization engine. ' +
-        `Translate JSON values from developer English to ${language}. ` +
-        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
-        'Return ONLY valid JSON.'
-    },
-    {
-      role: 'user',
-      content: JSON.stringify(source)
-    }
-  ]
-
-  try {
-    return await translate(language, messages);
-  } catch (err) {
-    console.error('Translation error:', err.message);
-  }
-}
-
-async function doReviewTranslation(source, language) {
-  const messages = [
-    {
-      role: 'system',
-      content:
-        'You are a critical localization engine. ' +
-        `Look at the JSON values where there's an object with yourAnswer and otherAnswer. ` +
-        `For each such object, pick the best translation between yourAnswer and otherAnswer for ${language}. ` +
-        'Write the final JSON with the same structure, replacing those objects with the chosen translation. ' +
-        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
-        'Return ONLY valid JSON.'
-    },
-    {
-      role: 'user',
-      content: JSON.stringify(source)
-    }
-  ]
-
-  try {
-    return await translate(language, messages);
-  } catch (err) {
-    console.error('Translation error:', err.message);
-  }
-}
-
-function traverseAndCompare(src, translated, reviewed, out) {
-  for (const key of Object.keys(src)) {
-    if (typeof src[key] === 'object' && src[key] !== null) {
-      out[key] = {};
-      traverseAndCompare(src[key], translated[key], reviewed[key], out[key]);
-    } else {
-      if (translated[key] === reviewed[key]) {
-        out[key] = translated[key];
-      } else {
-        console.warn(`🔑 Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
-        out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
-      }
-    }
-  }
-}
-
-function traverseAndCompareNg(src, translated, reviewed, out, mismatches = []) {
-  for (const key of Object.keys(src)) {
-    if (typeof src[key] === 'object' && src[key] !== null) {
-      out[key] = {};
-      traverseAndCompareNg(src[key], translated[key], reviewed[key], out[key], mismatches);
-    } else {
-      if (translated[key] === reviewed[key]) {
-        out[key] = translated[key];
-      } else {
-        mismatches.push({ key, source: src[key], translated: translated[key], reviewed: reviewed[key] });
-        // console.warn(`🔑 Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
-        out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
-      }
-    }
-  }
-
-  return { out, mismatches };
-}
 
 async function entropyEliminator(source, language) {
   const [version1, version2] = await Promise.all([
@@ -165,22 +57,37 @@ async function entropyEliminator(source, language) {
 
   const { out: out1, mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
 
-  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(out1, null, 2));
+  // console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(out1, null, 2));
 
   console.log('🔍 Mismatches found:', mismatches1.length);
-  console.table(mismatches1);
+  console.log(mismatches1.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
 
-  const [versionCleaned1, versionCleaned2] = await Promise.all([
-    doReviewTranslation(out1, language),
-    doReviewTranslation(out1, language),
-  ]);
+  // return
 
-  const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(source, versionCleaned1, versionCleaned2, {}, []);
+  // const [versionCleaned1, versionCleaned2] = await Promise.all([
+  //   doReviewTranslation(out1, language),
+  //   doReviewTranslation(out1, language),
+  // ]);
 
-  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
+  // const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(source, versionCleaned1, versionCleaned2, {}, []);
 
-  console.log('🔍 Mismatches found in second pass:', mismatches2.length);
-  console.table(mismatches2);
+  // console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
+
+  // console.log('🔍 Mismatches found in second pass:', mismatches2.length);
+  // console.table(mismatches2);
+
+  const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
+  if (fs.existsSync(targetFile)) {
+    const referenceFile = readJSON(targetFile);
+    console.log('📄 Comparing with existing translation file:', targetFile);
+
+    const { out: finalOut, mismatches: finalMismatches } = traverseAndCompareNg(source, out1, referenceFile, {}, []);
+
+    // console.log('✅ Final cleaned translations', JSON.stringify(finalOut, null, 2));
+
+    console.log('🔍 Final mismatches found:', finalMismatches.length);
+    console.log(finalMismatches.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
+  }
   // return cleaned;
 }
 
