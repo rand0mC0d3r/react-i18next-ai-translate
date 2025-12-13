@@ -158,21 +158,29 @@ function traverseAndCompareNg(src, translated, reviewed, out, mismatches = []) {
 }
 
 async function entropyEliminator(source, language) {
-  const version1 = await doTranslate(source, language);
-  const version2 = await doTranslate(source, language);
+  const [version1, version2] = await Promise.all([
+    doTranslate(source, language),
+    doTranslate(source, language),
+  ]);
 
-  const { out: cleanedOut, mismatches } = traverseAndCompareNg(source, version1, version2, {}, []);
+  const { out: out1, mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
 
-  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(cleanedOut, null, 2));
-  console.table(mismatches);
+  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(out1, null, 2));
 
-  const versionCleaned1 = await doReviewTranslation(cleanedOut, language);
-  const versionCleaned2 = await doReviewTranslation(cleanedOut, language);
+  console.log('🔍 Mismatches found:', mismatches1.length);
+  console.table(mismatches1);
 
-  const cleaned2 = {};
-  traverseAndCompare(source, versionCleaned1, versionCleaned2, cleaned2);
+  const [versionCleaned1, versionCleaned2] = await Promise.all([
+    doReviewTranslation(out1, language),
+    doReviewTranslation(out1, language),
+  ]);
 
-  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(cleaned2, null, 2));
+  const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(source, versionCleaned1, versionCleaned2, {}, []);
+
+  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
+
+  console.log('🔍 Mismatches found in second pass:', mismatches2.length);
+  console.table(mismatches2);
   // return cleaned;
 }
 
