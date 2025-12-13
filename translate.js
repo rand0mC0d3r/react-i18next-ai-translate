@@ -7,6 +7,7 @@ import process from 'process';
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const cfg = pkg['i18next-ai-translate'];
 
+let engineUsedIndex = 0;
 
 if (!cfg) {
 throw new Error('Missing i18next-ai-translate config in package.json');
@@ -49,7 +50,14 @@ const writeJSON = (file, data) => {
 
 async function translate(sourceJson, language) {
   const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
-  const model = models[Math.floor(Math.random() * models.length)];
+  const model = models[engineUsedIndex];
+  if(engineUsedIndex >= models.length) {
+    // throw new Error('No more models to try for translation');
+    engineUsedIndex = 0;
+  } else {
+    engineUsedIndex++;
+  }
+  console.log('Translating with model:', model, 'to', language);
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -86,13 +94,11 @@ async function translate(sourceJson, language) {
 
 async function entropyEliminator(source, language) {
   const version1 = await translate(source, language);
-  console.log('Getting first', version1);
   const version2 = await translate(source, language);
-  console.log('Getting second', version2);
 
   const cleaned = {};
 
-  // traverse both versions and pick matching entries
+  // traverse both versions and extract mismatches
   function traverse(src, v1, v2, out) {
     for (const key of Object.keys(src)) {
       if (typeof src[key] === 'object' && src[key] !== null) {
@@ -102,7 +108,10 @@ async function entropyEliminator(source, language) {
         if (v1[key] === v2[key]) {
           out[key] = v1[key];
         } else {
-          console.warn(`⚠️  Mismatch at key: ${key}. Skipping entry.`);
+          console.log(`Mismatch at key: ${key}`);
+          console.log(`  Version 1: ${v1[key]}`);
+          console.log(`  Version 2: ${v2[key]}`);
+          out[key] = '<<ENTROPY_MISMATCH>>'; // or handle mismatch as needed
         }
       }
     }
