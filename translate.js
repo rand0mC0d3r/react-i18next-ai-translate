@@ -8,6 +8,7 @@ const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const cfg = pkg['i18next-ai-translate'];
 
 let engineUsedIndex = 0;
+const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
 
 if (!cfg) {
 throw new Error('Missing i18next-ai-translate config in package.json');
@@ -48,16 +49,12 @@ const writeJSON = (file, data) => {
 
 // ---- OpenAI call -------------------------------------------
 
-async function translate(sourceJson, language) {
-  const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
+async function translate(language, messages) {
   const model = models[engineUsedIndex];
-  if(engineUsedIndex >= models.length) {
-    // throw new Error('No more models to try for translation');
-    engineUsedIndex = 0;
-  } else {
-    engineUsedIndex++;
-  }
+
+  engineUsedIndex >= models.length ? engineUsedIndex = 0 : engineUsedIndex++;
   console.log('Translating with model:', model, 'to', language);
+
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -67,20 +64,7 @@ async function translate(sourceJson, language) {
     body: JSON.stringify({
       model: model,
       temperature: 0,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a localization engine. ' +
-            `Translate JSON values from developer English to ${language}. ` +
-            'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
-            'Return ONLY valid JSON.'
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(sourceJson)
-        }
-      ]
+      messages: messages
     })
   });
 
@@ -92,9 +76,32 @@ async function translate(sourceJson, language) {
   return JSON.parse(json.choices[0].message.content);
 }
 
+async function doTranslate(source, language) {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are a localization engine. ' +
+        `Translate JSON values from developer English to ${language}. ` +
+        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
+        'Return ONLY valid JSON.'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(source)
+    }
+  ]
+
+  try {
+    return await translate(language, messages);
+  } catch (err) {
+    console.error('Translation error:', err.message);
+  }
+}
+
 async function entropyEliminator(source, language) {
-  const version1 = await translate(source, language);
-  const version2 = await translate(source, language);
+  const version1 = await doTranslate(source, language);
+  const version2 = await doTranslate(source, language);
 
   const cleaned = {};
 
