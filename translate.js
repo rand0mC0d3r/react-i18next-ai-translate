@@ -52,7 +52,7 @@ const writeJSON = (file, data) => {
 async function translate(language, messages) {
   const model = models[engineUsedIndex];
 
-  engineUsedIndex >= models.length ? engineUsedIndex = 0 : engineUsedIndex++;
+  engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
   console.log('Translating with model:', model, 'to', language);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -99,35 +99,64 @@ async function doTranslate(source, language) {
   }
 }
 
+async function doReviewTranslation(source, language) {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are a critical localization engine. ' +
+        `Look at the JSON values where there's an object with yourAnswer and otherAnswer. ` +
+        `For each such object, pick the best translation between yourAnswer and otherAnswer for ${language}. ` +
+        'Write the final JSON with the same structure, replacing those objects with the chosen translation. ' +
+        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
+        'Return ONLY valid JSON.'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(source)
+    }
+  ]
+
+  try {
+    return await translate(language, messages);
+  } catch (err) {
+    console.error('Translation error:', err.message);
+  }
+}
+
+function traverseAndCompare(src, translated, reviewed, out) {
+  for (const key of Object.keys(src)) {
+    if (typeof src[key] === 'object' && src[key] !== null) {
+      out[key] = {};
+      traverseAndCompare(src[key], translated[key], reviewed[key], out[key]);
+    } else {
+      if (translated[key] === reviewed[key]) {
+        out[key] = translated[key];
+      } else {
+        console.log(`Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
+        out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
+      }
+    }
+  }
+}
+
 async function entropyEliminator(source, language) {
   const version1 = await doTranslate(source, language);
   const version2 = await doTranslate(source, language);
 
   const cleaned = {};
+  traverseAndCompare(source, version1, version2, cleaned);
 
-  // traverse both versions and extract mismatches
-  function traverse(src, v1, v2, out) {
-    for (const key of Object.keys(src)) {
-      if (typeof src[key] === 'object' && src[key] !== null) {
-        out[key] = {};
-        traverse(src[key], v1[key], v2[key], out[key]);
-      } else {
-        if (v1[key] === v2[key]) {
-          out[key] = v1[key];
-        } else {
-          console.log(`Mismatch at key: ${key}`);
-          console.log(`  Version 1: ${v1[key]}`);
-          console.log(`  Version 2: ${v2[key]}`);
-          out[key] = '<<ENTROPY_MISMATCH>>'; // or handle mismatch as needed
-        }
-      }
-    }
-  }
+  console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(cleaned, null, 2));
 
-  traverse(source, version1, version2, cleaned);
+  const versionCleaned1 = await doReviewTranslation(cleaned, language);
+  const versionCleaned2 = await doReviewTranslation(cleaned, language);
 
-  console.log('🧼 Cleaned translations with entropy eliminator', cleaned);
-  return cleaned;
+  const cleaned2 = {};
+  traverseAndCompare(source, versionCleaned1, versionCleaned2, cleaned2);
+
+  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(cleaned2, null, 2));
+  // return cleaned;
 }
 
 // ---- run ---------------------------------------------------
@@ -135,7 +164,7 @@ async function entropyEliminator(source, language) {
 (async () => {
   console.log('🌍 Translating EN → FR');
 
-  console.log(targetLanguages);
+  // console.log(targetLanguages);
 
   const source = readJSON(SOURCE_FILE);
 
