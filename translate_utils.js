@@ -53,7 +53,7 @@ export async function translate(language, messages) {
   try {
     JSON.parse(json.choices[0].message.content);
   } catch (e) {
-    console.error('❌ Failed to parse JSON response from OpenAI:', json.choices[0].message.content);
+    console.error('❌ Failed to parse JSON response from OpenAI:', model, json.choices[0].message.content);
     throw e;
   }
 
@@ -67,7 +67,7 @@ export async function doTranslate(source, language) {
       content:
         'You are a localization engine. ' +
         `Translate JSON values from developer English to ${language}. ` +
-        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
+        'Do not change keys. Preserve nesting and placeholders like {{count}}. The template syntax is i18next. ' +
         'Return ONLY valid JSON.'
     },
     {
@@ -90,8 +90,32 @@ export async function doReviewTranslation(language, mismatches, answerOne, answe
       content:
         'You are a critical localization engine. ' +
         `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, your previous answer for translating to ${language}, at key ${answerOne}, and another AI's answer at key: ${answerTwo} for translating to same language ${language}. ` +
-        `Write at key ${targetField} looking at both answers which translation you think fits best. ` +
-        'Return ONLY valid JSON.'
+        `Write at key ${targetField} looking at both answers which translation you think fits best. No non-whitespace characters outside the JSON structure. ` +
+        'Return ONLY valid JSON. Return the object at the same nesting level. Do not wrap it in a new object.'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(mismatches)
+    }
+  ]
+
+  try {
+    return await translate(language, messages);
+  } catch (err) {
+    console.error('Translation error:', err.message);
+  }
+}
+
+
+export async function doFinalTranslation(language, mismatches, answerOne, answerTwo, targetField) {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are a critical localization engine. ' +
+        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, your previous answer for translating to ${language}, at key ${answerOne}, and another AI's answer at key: ${answerTwo} for translating to same language ${language}. ` +
+        `Write at key ${targetField} looking at both answers which translation you think fits best. No non-whitespace characters outside the JSON structure. ` +
+        'Return ONLY valid JSON. Return the object at the same nesting level. Do not wrap it in a new object.'
     },
     {
       role: 'user',

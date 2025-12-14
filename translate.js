@@ -50,43 +50,44 @@ const writeJSON = (file, data) => {
 
 
 async function entropyEliminator(source, language) {
+
+  // First, create two independent translations
   const [version1, version2] = await Promise.all([
     doTranslate(source, language),
     doTranslate(source, language),
   ]);
 
   const { out: out1, mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
-  const modified1 = mismatches1.map(m => ({ key: m.key, originalSource: m.source, answerA: m.translated, answerB: m.reviewed, aiCommentA: '', aiCommentB: '' }))
-  // console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(out1, null, 2));
+  const modified1 = mismatches1.map(m => ({
+    key: m.key,
+    originalSource: m.source,
+    answerA: m.translated,
+    answerB: m.reviewed,
+    critique: 'Answer which translation is better and why.',
+  }))
 
   console.log('🔍 Mismatches found:', mismatches1.length);
   console.log(modified1);
 
-  // return
+  debugger;
 
+  // Second, review translations in both directions
   const [versionCleaned1, versionCleaned2] = await Promise.all([
-    doReviewTranslation(language, modified1, 'answerA', 'answerB', 'aiCommentA'),
-    doReviewTranslation(language, modified1, 'answerB', 'answerA', 'aiCommentB'),
+    doReviewTranslation(language, modified1, 'answerA', 'answerB', 'critique'),
+    doReviewTranslation(language, modified1, 'answerB', 'answerA', 'critique'),
   ]);
 
-console.log('-------')
-console.log('-------')
-console.log('-------')
-console.log(versionCleaned1)
-console.log('-------')
-console.log('-------')
-console.log('-------')
-console.log(versionCleaned2)
-console.log('-------')
-console.log('-------')
-console.log('-------')
+  debugger;
 
-  const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(modified1, versionCleaned1, versionCleaned2, {}, []);
+  const combinedVersions = versionCleaned1.map((item, idx) => ({
+    ...item,
+    critiqueAlternative: versionCleaned2[idx].critique
+  }));
 
-  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
+  console.log('🔍 Mismatches found in second pass:', combinedVersions.length);
+  console.log(combinedVersions);
 
-  console.log('🔍 Mismatches found in second pass:', mismatches2.length);
-  console.table(mismatches2);
+
 
   // const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
   // if (fs.existsSync(targetFile)) {
