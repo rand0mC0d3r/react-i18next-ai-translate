@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
-import { doTranslate, traverseAndCompareNg } from './translate_utils.js';
+import { doReviewTranslation, doTranslate, traverseAndCompareNg } from './translate_utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -56,38 +56,50 @@ async function entropyEliminator(source, language) {
   ]);
 
   const { out: out1, mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
-
+  const modified1 = mismatches1.map(m => ({ key: m.key, originalSource: m.source, answerA: m.translated, answerB: m.reviewed, aiCommentA: '', aiCommentB: '' }))
   // console.log('🧼 Cleaned translations with entropy eliminator', JSON.stringify(out1, null, 2));
 
   console.log('🔍 Mismatches found:', mismatches1.length);
-  console.log(mismatches1.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
+  console.log(modified1);
 
   // return
 
-  // const [versionCleaned1, versionCleaned2] = await Promise.all([
-  //   doReviewTranslation(out1, language),
-  //   doReviewTranslation(out1, language),
-  // ]);
+  const [versionCleaned1, versionCleaned2] = await Promise.all([
+    doReviewTranslation(language, modified1, 'answerA', 'answerB', 'aiCommentA'),
+    doReviewTranslation(language, modified1, 'answerB', 'answerA', 'aiCommentB'),
+  ]);
 
-  // const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(source, versionCleaned1, versionCleaned2, {}, []);
+console.log('-------')
+console.log('-------')
+console.log('-------')
+console.log(versionCleaned1)
+console.log('-------')
+console.log('-------')
+console.log('-------')
+console.log(versionCleaned2)
+console.log('-------')
+console.log('-------')
+console.log('-------')
 
-  // console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
+  const { out: out2, mismatches: mismatches2 } = traverseAndCompareNg(modified1, versionCleaned1, versionCleaned2, {}, []);
 
-  // console.log('🔍 Mismatches found in second pass:', mismatches2.length);
-  // console.table(mismatches2);
+  console.log('🧼 Cleaned translations with entropy eliminator second pass', JSON.stringify(out2, null, 2));
 
-  const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
-  if (fs.existsSync(targetFile)) {
-    const referenceFile = readJSON(targetFile);
-    console.log('📄 Comparing with existing translation file:', targetFile);
+  console.log('🔍 Mismatches found in second pass:', mismatches2.length);
+  console.table(mismatches2);
 
-    const { out: finalOut, mismatches: finalMismatches } = traverseAndCompareNg(source, out1, referenceFile, {}, []);
+  // const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
+  // if (fs.existsSync(targetFile)) {
+  //   const referenceFile = readJSON(targetFile);
+  //   console.log('📄 Comparing with existing translation file:', targetFile);
 
-    // console.log('✅ Final cleaned translations', JSON.stringify(finalOut, null, 2));
+  //   const { out: finalOut, mismatches: finalMismatches } = traverseAndCompareNg(source, out1, referenceFile, {}, []);
 
-    console.log('🔍 Final mismatches found:', finalMismatches.length);
-    console.log(finalMismatches.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
-  }
+  //   // console.log('✅ Final cleaned translations', JSON.stringify(finalOut, null, 2));
+
+  //   console.log('🔍 Final mismatches found:', finalMismatches.length);
+  //   console.log(finalMismatches.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
+  // }
   // return cleaned;
 }
 

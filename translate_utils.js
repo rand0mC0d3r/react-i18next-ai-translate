@@ -23,6 +23,7 @@ if (!apiKey) {
 }
 
 export async function translate(language, messages) {
+  const t0 = performance.now();
   const model = models[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
@@ -40,13 +41,22 @@ export async function translate(language, messages) {
       messages: messages
     })
   });
-  console.log('🤖 Fetch complete:', res.status, res.statusText, model);
+  const t1 = performance.now()
+  console.log('🤖 Fetch complete:', res.status, res.statusText, model, (t1 - t0).toFixed(2), 'ms');
 
   if (!res.ok) {
     throw new Error(await res.text());
   }
 
   const json = await res.json();
+
+  try {
+    JSON.parse(json.choices[0].message.content);
+  } catch (e) {
+    console.error('❌ Failed to parse JSON response from OpenAI:', json.choices[0].message.content);
+    throw e;
+  }
+
   return JSON.parse(json.choices[0].message.content);
 }
 
@@ -73,21 +83,19 @@ export async function doTranslate(source, language) {
   }
 }
 
-export async function doReviewTranslation(source, language) {
+export async function doReviewTranslation(language, mismatches, answerOne, answerTwo, targetField) {
   const messages = [
     {
       role: 'system',
       content:
         'You are a critical localization engine. ' +
-        `Look at the JSON values where there's an object with yourAnswer and otherAnswer. ` +
-        `For each such object, pick the best translation between yourAnswer and otherAnswer for ${language}. ` +
-        'Write the final JSON with the same structure, replacing those objects with the chosen translation. ' +
-        'Do not change keys. Preserve nesting and placeholders like {{count}}. ' +
+        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, your previous answer for translating to ${language}, at key ${answerOne}, and another AI's answer at key: ${answerTwo} for translating to same language ${language}. ` +
+        `Write at key ${targetField} looking at both answers which translation you think fits best. ` +
         'Return ONLY valid JSON.'
     },
     {
       role: 'user',
-      content: JSON.stringify(source)
+      content: JSON.stringify(mismatches)
     }
   ]
 
