@@ -116,31 +116,32 @@ const createMismatchesTree = (grid, interfaceMap) => {
 }
 
 const createLogsBox = (grid, interfaceMap) => {
-  grid.set(0, 15, rows, 5, blessed.box, {
+  grid.set(rows - interfaceMap.candidates, 13, interfaceMap.candidates, 8, blessed.box, {
     label: 'Logs',
     style: {
       fg: 'white',
       bg: 'black',
       padding: 1,
     },
-    content: interfaceMap.logs || '...no logs yet'
+    content: interfaceMap.logs.join("\n") || '...no logs yet'
   })
 }
 
 const createCandidates = (grid, interfaceMap) => {
-  grid.set(rows - interfaceMap.candidates, 0, interfaceMap.candidates, cols, blessed.box, {
-    label: 'Candidates' + ` [${interfaceMap.candidates}]`,
+  const candidates = grid.set(rows - interfaceMap.candidates, 5, interfaceMap.candidates, 8, blessed.box, {
+    label: 'Candidates' + ` [${interfaceMap.candidates}] [active: ${interfaceMap.activeCandidates.length}]`,
+    tags: true,
     style: {
       fg: 'white',
       bg: 'black',
       padding: 1,
-    },
-    content: `${Array(interfaceMap.candidates).fill(0)
-      .map((_, i) => `Candidate ${i + 1}:\n\t ${interfaceMap.callsLogs[i]?.length > 0
+    }
+  })
+   candidates.setContent(`${Array(interfaceMap.candidates).fill(0)
+      .map((_, i) => `[${interfaceMap.activeCandidates.includes(i) ? '{green-fg}RUN{/}' : '{red-fg}OFF{/}'}] Candidate ${i + 1}:\n\t ${interfaceMap.callsLogs[i]?.length > 0
         ? interfaceMap.callsLogs[i]?.map(log => `[[${log.reason} ${log.status} ${log.model} (${log.duration}ms)]]`).join(', ')
         : 'No calls made.'
-      }`).join('\n\n')}`
-  })
+      }`).join('\n\n')}`)
 }
 
 export async function createInterface(interfaceMap) {
@@ -155,7 +156,8 @@ export async function createInterface(interfaceMap) {
   // createMismatchesTree(grid, interfaceMap);
   createMismatchesTreeNg(grid, interfaceMap);
 
-  // createCandidates(grid, interfaceMap);
+  createCandidates(grid, interfaceMap);
+  createLogsBox(grid, interfaceMap);
 
   screen.render()
 }

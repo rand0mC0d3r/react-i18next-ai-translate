@@ -41,6 +41,7 @@ let interfaceMap = {
   activeLanguage: '',
   candidates: 0,
   rootFile,
+  activeCandidates: [0,1],
   callsLogs: {
 
   },
@@ -94,9 +95,52 @@ const writeJSON = (file, data) => {
 };
 
 const doTranslateWithRetries = async (retries = 3, index = 0) => {
+  let combinedTranslations = [
+    {
+      "about.buildnumber": "Numéro de build :",
+      "about.cloudEdition": "Cloud",
+      "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      "about.database": "Base de données :",
+      "about.date": "Date de build :",
+      "about.dbversion": "Version du schéma de base de données :",
+      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+      "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+      "about.hash": "Hash de build :",
+    },
+    {
+      "about.buildnumber": "Numéro de version :",
+      "about.cloudEdition": "Cloud",
+      "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      "about.database": "Base de données :",
+      "about.date": "Date de création :",
+      "about.dbversion": "Version du schéma de la base de données :",
+      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+      "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
+      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+      "about.hash": "Hash de création :",
+    },
+    {
+      "about.buildnumber": "Numéro de build :",
+      "about.cloudEdition": "Cloud",
+      "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      "about.database": "Base de données :",
+      "about.date": "Date de build :",
+      "about.dbversion": "Version du schéma de base de données :",
+      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+      "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+      "about.hash": "Hash de build :",
+    },
+  ]
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog, guidance);
+      let result
+      if (mocks) {
+        result = combinedTranslations[index];
+      } else {
+        result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog, guidance);
+      }
       const validateResults = validateTranslation(interfaceMap.sourceFeatures, result);
 
       if (validateResults.length > 0) {
@@ -175,50 +219,9 @@ const STEP_loadAndValidateSource = async () => {
 }
 
 const STEP_performTranslation = async () => {
-  let combinedTranslations = [
-    {
-      "about.buildnumber": "Numéro de build :",
-      "about.cloudEdition": "Cloud",
-      "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-      "about.database": "Base de données :",
-      "about.date": "Date de build :",
-      "about.dbversion": "Version du schéma de base de données :",
-      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-      "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-      "about.hash": "Hash de build :",
-    },
-    {
-      "about.buildnumber": "Numéro de version :",
-      "about.cloudEdition": "Cloud",
-      "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-      "about.database": "Base de données :",
-      "about.date": "Date de création :",
-      "about.dbversion": "Version du schéma de la base de données :",
-      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-      "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
-      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-      "about.hash": "Hash de création :",
-    },
-    {
-      "about.buildnumber": "Numéro de build :",
-      "about.cloudEdition": "Cloud",
-      "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-      "about.database": "Base de données :",
-      "about.date": "Date de build :",
-      "about.dbversion": "Version du schéma de base de données :",
-      "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-      "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-      "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-      "about.hash": "Hash de build :",
-    },
-  ]
-
-  if (!mocks) {
-    combinedTranslations = await Promise.all(
-      Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(3, index))
-    );
-  }
+  const combinedTranslations = await Promise.all(
+    Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(3, index))
+  );
 
   const traverseResults = traverseAndCollapseEntropy(interfaceMap.source, combinedTranslations);
 
