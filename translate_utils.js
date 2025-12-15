@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const cfg = pkg['i18next-ai-translate'];
 
 let engineUsedIndex = 0;
-const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
+const models = ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4', 'gpt-4.1-mini', 'gpt-4-turbo'];
 
 if (!cfg) {
   throw new Error('Missing i18next-ai-translate config in package.json');
@@ -24,7 +24,8 @@ if (!apiKey) {
 
 export async function translate(language, messages) {
   const t0 = performance.now();
-  const model = models[engineUsedIndex];
+  const modelsToPickFrom = Math.random() < 0.5 ? models : models.reverse();
+  const model = modelsToPickFrom[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
   console.log('🤖 Translating with model:', model, 'to', language);
@@ -49,15 +50,16 @@ export async function translate(language, messages) {
   }
 
   const json = await res.json();
+  const processedJson = json.choices[0].message.content.replace(/\n/g, ' ').replace(/```json+/g, ' ').replace(/```/g, ' ')
 
   try {
-    JSON.parse(json.choices[0].message.content);
+    JSON.parse(processedJson);
   } catch (e) {
-    console.error('❌ Failed to parse JSON response from OpenAI:', model, json.choices[0].message.content);
+    console.error('❌ Failed to parse JSON response from OpenAI:', model, processedJson);
     throw e;
   }
 
-  return JSON.parse(json.choices[0].message.content);
+  return JSON.parse(processedJson);
 }
 
 export async function doTranslate(source, language) {
@@ -67,8 +69,8 @@ export async function doTranslate(source, language) {
       content:
         'You are a localization engine. ' +
         `Translate JSON values from developer English to ${language}. ` +
-        'Do not change keys. Preserve nesting and placeholders like {{count}}. The template syntax is i18next. ' +
-        'Return ONLY valid JSON.'
+        'Do not change keys. Preserve nesting, placeholders, interpolations and HTML tags. The template syntax is i18next. ' +
+        'Return ONLY valid JSON keeping the previous format unchanged. Do not wrap it in a new object.'
     },
     {
       role: 'user',
