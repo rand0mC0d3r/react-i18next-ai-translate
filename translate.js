@@ -5,7 +5,7 @@ import process from 'process';
 import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
 import { doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
-import { infoStep } from './utils.js';
+import { infoStep, separator } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -53,6 +53,7 @@ const writeJSON = (file, data) => {
 const STEP_loadAndValidateSource = (file) => {
   try {
     const source = readJSON(file);
+    console.log('LOADING FILES');
     infoStep('✅ Loaded file', file);
 
     const sourceFeatures = extractFeatures(source);
@@ -63,7 +64,7 @@ const STEP_loadAndValidateSource = (file) => {
       process.exit(1);
     }
 
-    infoStep('\n\n', );
+    separator();
 
     return { source, sourceFeatures };
   } catch (e) {
@@ -110,22 +111,27 @@ const doPeerReviewWithRetries = async (mismatches, language, retries = 3) => {
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
+console.log('SPAWNING TRANSLATORS');
  const combinedTranslations = await Promise.all(
     Array.from({ length: counts }).map(() => doTranslateWithRetries(source, language, sourceFeatures))
   );
-  console.log('✅ Initial translations done.', combinedTranslations);
+  console.log('\n✅ Initial translations done.', combinedTranslations);
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
-  console.log('✅ Entropy collapse results:', traverseResults);
+  console.log('\n✅ Entropy collapse results:', traverseResults);
+
+  separator();
 
   return traverseResults;
 }
 
 const STEP_performPeerCritique = async (mismatches, language, counts) => {
+  console.log('PERFORM REVIEW');
  const combinedPeerReviews = await Promise.all(
    Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
   );
 
+  console.log('\n✅ Peer critiques done.', combinedPeerReviews);
   return combinedPeerReviews
 }
 
@@ -133,18 +139,17 @@ async function entropyEliminator(sourceDDD, language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
-  // return
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
   // const combinedPeerReviews = combinedPeerReviewsData
-  console.log('✅ Peer critiques done.', combinedPeerReviews);
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
     ...item,
     result: combinedPeerReviews.map(review => review[idx].result).every(r => r === item.result) ? item.result : '<<EntropyDetected>>',
   }));
+
+  // return
 
   const remainingTasks = combinedResults.filter(r => r.result === '<<EntropyDetected>>');
 
@@ -158,7 +163,8 @@ async function entropyEliminator(sourceDDD, language, file) {
 
 (async () => {
   console.clear();
-  console.log('🌍 Translating EN → FR');
+  infoStep('🌍 Translating EN → FR', 'entropyEliminator');
+  separator();
 
   entropyEliminator('', 'fr', SOURCE_FILE);
 

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import fs from 'fs';
 import process from 'process';
+import { infoStep } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -28,7 +29,7 @@ export async function translate(language, messages) {
   const model = modelsToPickFrom[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  console.log('🤖 Translating with model:', model, 'to', language);
+  infoStep('🤖 Starting translating', model, language);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -43,7 +44,7 @@ export async function translate(language, messages) {
     })
   });
   const t1 = performance.now()
-  console.log('🤖 Fetch complete:', res.status, res.statusText, model, (t1 - t0).toFixed(2), 'ms');
+  infoStep('🤖 Fetch complete', model, `${res.status} ${res.statusText} in ${(t1 - t0).toFixed(2)} ms`);
 
   if (!res.ok) {
     throw new Error(await res.text());

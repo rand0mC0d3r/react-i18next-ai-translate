@@ -30,6 +30,10 @@ export const infoStep = (message, action = "", detail = "") => {
     )
 }
 
+export const separator = () => {
+  console.log('\n--------------------------------------------------\n\n');
+}
+
 
 export const combinedPeerReviewsData = [
   [

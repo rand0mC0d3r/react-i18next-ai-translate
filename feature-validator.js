@@ -2,8 +2,6 @@ import { extractFeatures } from './feature-extractor.js';
 import { debugStep, infoStep } from './utils.js';
 
 export function validateTranslation(sourceFeatures, translatedJson) {
-  infoStep('🔍 Validating payload :', 'validateTranslation');
-
   const translatedFeatures = extractFeatures(translatedJson);
   const errors = [];
 

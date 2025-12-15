@@ -1,4 +1,4 @@
-import { debugStep, infoStep } from './utils.js';
+import { debugStep } from './utils.js';
 
 export function extractFeatures(obj, path = '', acc = {}) {
   for (const [key, value] of Object.entries(obj)) {
@@ -12,7 +12,7 @@ export function extractFeatures(obj, path = '', acc = {}) {
   }
 
   debugStep('🔍 Features extracted:', 'extractFeatures', JSON.stringify(acc, null, 2));
-  infoStep('🔍 Features extracted:', 'extractFeatures', `${Object.keys(acc).length} keys`);
+  // infoStep('🔍 Features extracted:', 'extractFeatures', `${Object.keys(acc).length} keys`);
 
   return acc;
 }
