@@ -73,7 +73,10 @@ export async function createInterface(interfaceMap) {
       padding: 1,
     },
     content: `${Array(interfaceMap.candidates).fill(0)
-      .map((_, i) => `Candidate ${i + 1}:\n\t ${interfaceMap.callsLogs[i]?.map(log => `[[${log.reason} ${log.model} (${log.duration})]]`).join(', ')}\n`).join('\n')}`,
+      .map((_, i) => `Candidate ${i + 1}:\n\t ${interfaceMap.callsLogs[i]?.length > 0
+        ? interfaceMap.callsLogs[i]?.map(log => `[[${log.reason} ${log.status} ${log.model} (${log.duration}ms)]]`).join(', ')
+        : 'No calls made.'
+      }`).join('\n\n')}`
   })
   screen.render()
 }

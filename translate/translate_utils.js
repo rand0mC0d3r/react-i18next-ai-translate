@@ -29,7 +29,7 @@ export async function translate(language, messages, index, callback = () => {}) 
   const model = modelsToPickFrom[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  // infoStep('🤖 Starting translating', model, language);
+  callback(model, index, `starting`, 0);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -44,7 +44,6 @@ export async function translate(language, messages, index, callback = () => {}) 
     })
   });
   const t1 = performance.now()
-  // infoStep('🤖 Fetch complete', model, `${res.status} ${res.statusText} in ${(t1 - t0).toFixed(2)} ms`);
   callback(model, index, `${res.status} ${res.statusText}`, (t1 - t0).toFixed(2));
 
   if (!res.ok) {

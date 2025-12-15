@@ -96,7 +96,6 @@ const STEP_loadAndValidateSource = (file) => {
 const doTranslateWithRetries = async (source, language, sourceFeatures, retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`TRANSLATING [Attempt ${attempt}]`, language, index);
       const emitTranslationLog = (model, index, status, duration) => {
         interfaceMap = {
           ...interfaceMap,
@@ -168,12 +167,9 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
  const combinedTranslations = await Promise.all(
     Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
   );
-  console.log('\n✅ Initial translations done.', combinedTranslations);
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
-  console.log('\n✅ Entropy collapse results:', traverseResults);
   interfaceMap = { ...interfaceMap, mismatches: traverseResults.mismatches };
-  separator();
 
   return traverseResults;
 }
@@ -202,6 +198,7 @@ async function entropyEliminator(language, file, candidates) {
   const counts = candidates
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
+  // return
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
   return
@@ -240,19 +237,7 @@ async function entropyEliminator(language, file, candidates) {
   console.log('✅ Combined peer review results:', combinedResults, remainingTasks.length, remainingTasks);
 
 
-
-}
-
-(async () => {
-
-
-  interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
-  appendLog(`Starting application with target languages: ${targetLanguages.join(', ')}`);
-
-  for (const lang of targetLanguages) {
-    interfaceMap = { ...interfaceMap, activeLanguage: lang };
-    await entropyEliminator(lang, SOURCE_FILE, candidates);
-    // console.log(`➡️  Language: ${lang}`);
+ // console.log(`➡️  Language: ${lang}`);
     // const translated = await translate(source, lang);
     // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
 
@@ -263,6 +248,14 @@ async function entropyEliminator(language, file, candidates) {
 
     // writeJSON(targetFile, translated);
     // console.log('✅ Done:', targetFile);
+}
+
+(async () => {
+  interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
+
+  for (const lang of targetLanguages) {
+    interfaceMap = { ...interfaceMap, activeLanguage: lang };
+    await entropyEliminator(lang, SOURCE_FILE, candidates);
   }
 })();
 
