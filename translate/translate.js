@@ -6,6 +6,7 @@ import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
 import { createInterface } from './translate.ui.js';
 import { doReviewRemainingTranslation, doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
+import { mocks } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -77,7 +78,7 @@ const STEP_loadAndValidateSource = () => {
     interfaceMap = {
       ...interfaceMap,
       originalInput: JSON.stringify(source, null, 2), //deprecate
-      source: JSON.stringify(source, null, 2),
+      source,
       sourceFeatures
     };
 
@@ -166,7 +167,7 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
-  const combinedTranslations = [
+  let combinedTranslations = [
     {
       "about.buildnumber": "Numéro de build :",
       "about.cloudEdition": "Cloud",
@@ -204,11 +205,15 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
       "about.hash": "Hash de build :",
     },
   ]
-//  const combinedTranslations = await Promise.all(
-//     Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
-//   );
 
-  const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
+  if (!mocks) {
+    combinedTranslations = await Promise.all(
+      Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
+    );
+  }
+
+  const traverseResults = traverseAndCollapseEntropy(interfaceMap.source, combinedTranslations);
+
   interfaceMap = {
     ...interfaceMap,
     mismatches: traverseResults.mismatches,
@@ -219,11 +224,7 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
 }
 
 const STEP_performPeerCritique = async (mismatches, language, counts) => {
-  console.log('PERFORM REVIEW');
-//  const combinedPeerReviews = await Promise.all(
-//    Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
-//  );
-  const combinedPeerReviews = [
+  let combinedPeerReviews = [
     [
       {
         key: "about.buildnumber",
@@ -384,7 +385,29 @@ const STEP_performPeerCritique = async (mismatches, language, counts) => {
     ],
   ]
 
-  return combinedPeerReviews
+  if (!mocks) {
+    combinedPeerReviews = await Promise.all(
+      Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
+    );
+  }
+
+  const updatedMismatches = mismatches.map((item, idx) => ({
+      ...item,
+      translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+      opinions: combinedPeerReviews.map(review => review[idx].opinion),
+      result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
+  }));
+
+  const fixedTranslations = { ...JSON.parse(interfaceMap.out) };
+  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
+    fixedTranslations[task.key] = task.result;
+  }
+
+  interfaceMap = {
+    ...interfaceMap,
+    mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>'),
+    out: JSON.stringify(fixedTranslations, null, 2)
+  };
 }
 
 const STEP_performPeerRemainingCritique = async (mismatches, language, counts) => {
@@ -399,26 +422,26 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
 
 async function entropyEliminator(language, candidates) {
   const counts = candidates
-  const { source, sourceFeatures } = STEP_loadAndValidateSource(interfaceMap.rootFile);
+  const { source, sourceFeatures } = STEP_loadAndValidateSource();
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
+  await STEP_performPeerCritique(mismatches, language, counts);
 
-  const updatedMismatches = mismatches.map((item, idx) => ({
-    ...item,
-    translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-    opinions: combinedPeerReviews.map(review => review[idx].opinion),
-    result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
-  }));
+  // const updatedMismatches = mismatches.map((item, idx) => ({
+  //   ...item,
+  //   translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+  //   opinions: combinedPeerReviews.map(review => review[idx].opinion),
+  //   result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
+  // }));
 
-  interfaceMap = { ...interfaceMap, mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>') };
+  // interfaceMap = { ...interfaceMap, mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>') };
 
 
-  const fixedTranslations = { ...translated };
-  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
-    fixedTranslations[task.key] = task.result;
-  }
-  interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
+  // const fixedTranslations = { ...translated };
+  // for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
+  //   fixedTranslations[task.key] = task.result;
+  // }
+  // interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
 
   return
 
