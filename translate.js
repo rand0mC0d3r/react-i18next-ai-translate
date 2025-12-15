@@ -68,10 +68,25 @@ async function entropyEliminator(sourceDDD, language, file) {
 
   // return
   // First, create two independent translations
-  const [version1, version2] = await Promise.all([
-    doTranslate(source, language),
-    doTranslate(source, language),
-  ]);
+  // const [version1, version2] = await Promise.all([
+  //   doTranslate(source, language),
+  //   doTranslate(source, language),
+  // ]);
+
+  const counts = 3
+  const combinedTranslations = await Promise.all(
+    Array.from({ length: counts }).map(() => doTranslate(source, language))
+  );
+
+  combinedTranslations.forEach((translation, idx) => {
+    console.log(validateTranslation(sourceFeatures, translation).length, 'errors in translation', idx + 1);
+  });
+
+
+  debugger;
+  console.log('✅ Initial translations done.', combinedTranslations);
+
+  return;
 
   const { mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
   const modified1 = mismatches1.map(m => ({
@@ -86,6 +101,8 @@ async function entropyEliminator(sourceDDD, language, file) {
   console.log(modified1);
 
   debugger;
+
+  return
 
   // Second, review translations in both directions
   const [versionCleaned1, versionCleaned2] = await Promise.all([
@@ -140,7 +157,7 @@ async function entropyEliminator(sourceDDD, language, file) {
 
   // const source = readJSON(SOURCE_FILE);
 
-  entropyEliminator(source, 'fr', SOURCE_FILE);
+  entropyEliminator('', 'fr', SOURCE_FILE);
 
   return;
 

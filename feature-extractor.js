@@ -1,4 +1,4 @@
-import { debugStep, infoStep } from './utils';
+import { debugStep, infoStep } from './utils.js';
 
 export function extractFeatures(obj, path = '', acc = {}) {
   for (const [key, value] of Object.entries(obj)) {
@@ -19,10 +19,14 @@ export function extractFeatures(obj, path = '', acc = {}) {
 
 function extractStringFeatures(str) {
   return {
-    interpolations: uniq([
-      ...matchAll(str, /\{\{\s*([\w.-]+)\s*\}\}/g), // {{var}}
-      ...matchAll(str, /\{([\w.-]+)\}/g)           // {var}
-    ]),
+    interpolationsSingle: uniq(
+      matchAll(str, /\{([\w.-]+)\}/g)
+        .filter(v => !str.includes(`{{${v}}}`)) // prevent double counting
+    ),
+
+    interpolationsDouble: uniq(
+      matchAll(str, /\{\{\s*([\w.-]+)\s*\}\}/g)
+    ),
     nesting: uniq(matchAll(str, /\$t\(\s*([^)]+)\s*\)/g)),
     transTags: uniq(matchAll(str, /<\/?([A-Za-z][\w-]*)>/g)),
     hasPlural: /_one\b|_other\b|_zero\b/.test(str),

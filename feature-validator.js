@@ -14,7 +14,8 @@ export function validateTranslation(sourceFeatures, translatedJson) {
       continue;
     }
 
-    compareArray(errors, key, 'interpolations', src, tgt);
+    compareArray(errors, key, 'interpolationsSingle', src, tgt);
+    compareArray(errors, key, 'interpolationsDouble', src, tgt);
     compareArray(errors, key, 'nesting', src, tgt);
     compareArray(errors, key, 'htmlTags', src, tgt);
 
