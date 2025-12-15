@@ -1,3 +1,5 @@
+import blessed from 'blessed';
+import contrib from 'blessed-contrib';
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
@@ -24,6 +26,10 @@ targetLanguages,
 targetFolder,
 options = {},
 } = cfg;
+
+let interfaceMap = {
+  originalInput: '...no data yet'
+}
 
 // ---- sanity ------------------------------------------------
 
@@ -53,6 +59,7 @@ const writeJSON = (file, data) => {
 const STEP_loadAndValidateSource = (file) => {
   try {
     const source = readJSON(file);
+    interfaceMap = { ...interfaceMap, originalInput: JSON.stringify(source, null, 2) };
     console.log('LOADING FILES');
     infoStep('✅ Loaded file', file);
 
@@ -164,6 +171,8 @@ async function entropyEliminator(sourceDDD, language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
+
+  return
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
@@ -206,8 +215,27 @@ async function entropyEliminator(sourceDDD, language, file) {
 
 // ---- run ---------------------------------------------------
 
+async function createInterface() {
+  let screen = blessed.screen()
+  const rows = 12
+  const cols = 20
+
+  var grid = new contrib.grid({ rows, cols, screen })
+
+  //grid.set(row, col, rowSpan, colSpan, obj, opts)
+  // var map = grid.set(0, 0, 12,12, contrib.map, {label: 'World Map'})
+  var box = grid.set(0, 0, rows, 4, blessed.box, {
+    label: 'Source Input',
+    content: interfaceMap.originalInput
+  })
+
+  screen.render()
+}
+
+
+
 (async () => {
-  console.clear();
+
   infoStep('🌍 Translating EN → FR', 'entropyEliminator');
   separator();
 
@@ -228,4 +256,13 @@ async function entropyEliminator(sourceDDD, language, file) {
     writeJSON(targetFile, translated);
     console.log('✅ Done:', targetFile);
   }
+})();
+
+(async () => {
+
+  createInterface();
+
+  setInterval(() => {
+    createInterface();
+  }, 2000);
 })();
