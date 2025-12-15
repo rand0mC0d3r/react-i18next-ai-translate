@@ -106,7 +106,7 @@ export async function doReviewTranslation(mismatches, language, index = 0, callb
   ]
 
   try {
-    return await translate(language, messages, index = 0, callback = () => {}, 'Review');
+    return await translate(language, messages, index, callback, 'Review');
   } catch (err) {
     console.error('Translation error:', err.message);
     throw e;
