@@ -198,7 +198,8 @@ async function entropyEliminator(language, file, candidates) {
   const counts = candidates
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
-  // return
+    interfaceMap = { ...interfaceMap, out: source };
+  return
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
   return

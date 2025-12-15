@@ -2,14 +2,11 @@ import blessed from 'blessed';
 import contrib from 'blessed-contrib';
 import 'dotenv/config';
 
-export async function createInterface(interfaceMap) {
-  let screen = blessed.screen()
-  const rows = 20
-  const cols = 20
+const rows = 20
+const cols = 20
 
-  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
-
-  grid.set(0, 0, 1, 4, blessed.box, {
+const createTargetLanguages = (grid, interfaceMap) => {
+  return grid.set(0, 0, 1, 4, blessed.box, {
     label: 'Target Languages ' + `[${interfaceMap.languages.length}]`,
     style: {
       fg: 'white',
@@ -18,10 +15,23 @@ export async function createInterface(interfaceMap) {
     },
     content: interfaceMap.languages.join(', ') + ` (active: ${interfaceMap.activeLanguage})`
   })
+}
+
+const createSourceInput = (grid, interfaceMap) => {
   grid.set(1, 0, rows - 1 - interfaceMap.candidates, 4, blessed.box, {
     label: 'Source Input',
     content: interfaceMap.originalInput
   })
+}
+
+export async function createInterface(interfaceMap) {
+  let screen = blessed.screen()
+
+  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
+
+  createTargetLanguages(grid, interfaceMap);
+  createSourceInput(grid, interfaceMap);
+
   const tree = grid.set(0, 4, rows, 6, contrib.tree, {
     label: 'Mismatches',
     vi: true,
