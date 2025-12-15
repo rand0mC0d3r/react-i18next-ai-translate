@@ -4,7 +4,7 @@ import path from 'path';
 import process from 'process';
 import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
-import { doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
+import { doReviewRemainingTranslation, doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
 import { infoStep, separator } from './utils.js';
 
 // --- config loading ---
