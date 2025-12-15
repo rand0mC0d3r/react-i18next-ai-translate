@@ -156,11 +156,9 @@ export async function createInterface(interfaceMap) {
 
   var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
 
-  // createTargetLanguages(grid, interfaceMap);
   createSourceInput(grid, interfaceMap);
   createSourceOutput(grid, interfaceMap);
   createSourceReference(grid, interfaceMap);
-  // createMismatchesTree(grid, interfaceMap);
   createMismatchesTreeNg(grid, interfaceMap);
 
   createCandidates(grid, interfaceMap);
