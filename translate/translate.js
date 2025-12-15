@@ -41,7 +41,7 @@ let interfaceMap = {
   activeLanguage: '',
   candidates: 0,
   rootFile,
-  activeCandidates: [0,1],
+  activeCandidates: [],
   callsLogs: {
 
   },
@@ -83,6 +83,20 @@ const emitTranslationLog = (model, index, status, duration, reason) => {
         }
       ]
     }
+  }
+}
+
+const setCandidateAsActive = (index) => {
+  interfaceMap = {
+    ...interfaceMap,
+    activeCandidates: [...new Set([...interfaceMap.activeCandidates, index])],
+  }
+}
+
+const unsetCandidateAsActive = (index) => {
+  interfaceMap = {
+    ...interfaceMap,
+    activeCandidates: interfaceMap.activeCandidates.filter(i => i !== index),
   }
 }
 
@@ -136,11 +150,13 @@ const doTranslateWithRetries = async (retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       let result
+      setCandidateAsActive(index);
       if (mocks) {
         result = combinedTranslations[index];
       } else {
         result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog, guidance);
       }
+      unsetCandidateAsActive(index);
       const validateResults = validateTranslation(interfaceMap.sourceFeatures, result);
 
       if (validateResults.length > 0) {
