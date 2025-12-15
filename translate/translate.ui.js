@@ -53,7 +53,7 @@ const itemsPerColumn = 4
         alwaysScroll: true,
         content:
           `source:\n${m.source}\n\n` +
-          `opinion:\n${m.opinion}\n\n` +
+          `opinion: ${m.opinion}\n\n` +
           `translations:\n${m.translations
             .map((t, j) => `  [${j + 1}] ${t}`)
             .join('\n')}\n\n` +
