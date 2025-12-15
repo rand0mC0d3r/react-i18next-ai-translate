@@ -82,17 +82,20 @@ export async function doTranslate(source, language) {
     return await translate(language, messages);
   } catch (err) {
     console.error('Translation error:', err.message);
+    throw e;
   }
 }
 
-export async function doReviewTranslation(language, mismatches, answerOne, answerTwo, targetField) {
+export async function doReviewTranslation(mismatches, language) {
   const messages = [
     {
       role: 'system',
       content:
         'You are a critical localization engine. ' +
-        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, your previous answer for translating to ${language}, at key ${answerOne}, and another AI's answer at key: ${answerTwo} for translating to same language ${language}. ` +
-        `Write at key ${targetField} looking at both answers which translation you think fits best. No non-whitespace characters outside the JSON structure. ` +
+        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, and an array of suggested translations for translating to ${language}. ` +
+        `Write at key 'opinion' your thoughts about the translations and which is the best one. ` +
+        `Write at key 'result' looking at the translations the answer that you think is the best. ` +
+        'No non-whitespace characters outside the JSON structure.' +
         'Return ONLY valid JSON. Return the object at the same nesting level. Do not wrap it in a new object.'
     },
     {
@@ -105,6 +108,7 @@ export async function doReviewTranslation(language, mismatches, answerOne, answe
     return await translate(language, messages);
   } catch (err) {
     console.error('Translation error:', err.message);
+    throw e;
   }
 }
 
@@ -161,6 +165,64 @@ export function traverseAndCompareNg(src, translated, reviewed, out, mismatches 
         // console.warn(`🔑 Mismatch at key: ${key} | Source: ${src[key]} | ${translated[key]} vs ${reviewed[key]}`);
         out[key] = { yourAnswer: translated[key], otherAnswer: reviewed[key] }; // or handle mismatch as needed
       }
+    }
+  }
+
+  return { out, mismatches };
+}
+
+export function traverseAndCollapseEntropy(
+  src,
+  candidates,   // array of translated objects
+  out = {},
+  mismatches = [],
+  path = ''
+) {
+  for (const key of Object.keys(src)) {
+    const fullPath = path ? `${path}.${key}` : key;
+    const srcVal = src[key];
+
+    // Structural check
+    for (const c of candidates) {
+      if (!(key in c)) {
+        mismatches.push({
+          key: fullPath,
+          type: 'StructureMismatch',
+          expectedType: typeof srcVal,
+          found: 'missing'
+        });
+        out[key] = '<<EntropyDetected>>';
+        continue;
+      }
+    }
+
+    if (typeof srcVal === 'object' && srcVal !== null) {
+      out[key] = {};
+      traverseAndCollapseEntropy(
+        srcVal,
+        candidates.map(c => c[key]),
+        out[key],
+        mismatches,
+        fullPath
+      );
+      continue;
+    }
+
+    // Leaf node → compare values
+    const values = candidates.map(c => c[key]);
+    const uniqueValues = [...new Set(values)];
+
+    if (uniqueValues.length === 1) {
+      out[key] = uniqueValues[0];
+    } else {
+      out[key] = '<<EntropyDetected>>';
+      mismatches.push({
+        key: fullPath,
+        source: srcVal,
+        translations: uniqueValues,
+        opinion: 'Your opinion...',
+        result: '',
+      });
     }
   }
 

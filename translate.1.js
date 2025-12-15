@@ -4,7 +4,8 @@ import path from 'path';
 import process from 'process';
 import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
-import { doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
+import { doFinalTranslation, doReviewTranslation, doTranslate, traverseAndCompareNg } from './translate_utils.js';
+import { combinedPeerReviewsData } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -119,15 +120,18 @@ async function entropyEliminator(sourceDDD, language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
-  const combinedTranslations = await STEP_performTranslation(source, language, sourceFeatures, counts);
-  console.log('✅ Initial translations done.', combinedTranslations);
+  // const combinedTranslations = await STEP_performTranslation(source, language, sourceFeatures, counts);
+  // console.log('✅ Initial translations done.', combinedTranslations);
 
-  const { mismatches, out: translated } = traverseAndCollapseEntropy(source, combinedTranslations);
-  console.log('✅ Entropy collapse results:', mismatches.length, translated);
+  // const { mismatches, out: translated } = traverseAndCollapseEntropy(source, combinedTranslations);
+  // console.log('✅ Entropy collapse results:', mismatches.length, translated);
 
   ///
-  const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
-  // const combinedPeerReviews = combinedPeerReviewsData
+
+
+
+  // const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
+  const combinedPeerReviews = combinedPeerReviewsData
   console.log('✅ Peer critiques done.', combinedPeerReviews);
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
@@ -140,7 +144,82 @@ async function entropyEliminator(sourceDDD, language, file) {
   console.log('✅ Combined peer review results:', combinedResults, remainingTasks.length, remainingTasks);
 
 
+  // const { mismatches: mismatches1, out: out1 } = traverseAndCollapseEntropy(mismatches, combinedPeerReviews);
 
+  // const leftoverMismatches = mismatches1.filter(m => m.result !== '<<EntropyDetected>>');
+  // if(leftoverMismatches.length > 0) {
+  //   console.log('🔍 Remaining mismatches after peer review:', leftoverMismatches.length, leftoverMismatches);
+
+  //     const combinedPeerReviews = await STEP_performPeerCritique(leftoverMismatches, language, counts);
+  //     console.log('✅ Peer critiques done. 2', combinedPeerReviews);
+
+  //     const { mismatches: mismatches2, out: out2 } = traverseAndCollapseEntropy(mismatches, combinedPeerReviews);
+  //     console.log('✅ Final entropy collapse results after 2nd peer review:', mismatches2.length, out2, mismatches2);
+
+  // } else {
+  //   console.log('✅ All mismatches resolved after peer review.');
+  // }
+
+  // console.log('✅ Final entropy collapse results:', finalMismatches.length, finalMismatches, finalOut);
+  return;
+
+  // const { mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
+  // const modified1 = mismatches1.map(m => ({
+  //   key: m.key,
+  //   originalSource: m.source,
+  //   answerA: m.translated,
+  //   answerB: m.reviewed,
+  //   critique: 'Answer which translation is better and why.',
+  // }))
+
+  // console.log('🔍 Mismatches found:', mismatches1.length);
+  // console.log(modified1);
+
+  // debugger;
+
+  // return
+
+  // Second, review translations in both directions
+  const [versionCleaned1, versionCleaned2] = await Promise.all([
+    doReviewTranslation(language, modified1, 'answerA', 'answerB', 'critique'),
+    doReviewTranslation(language, modified1, 'answerB', 'answerA', 'critique'),
+  ]);
+
+  debugger;
+
+  const combinedVersions = versionCleaned1.map((item, idx) => ({
+    ...item,
+    critiqueAlternative: versionCleaned2[idx].critique
+  }));
+
+  console.log('🔍 Mismatches found in second pass:', combinedVersions.length);
+  console.log(combinedVersions);
+
+    // Third, do final translation based on combined reviews
+  const [versionFinal1, versionFinal2] = await Promise.all([
+    doFinalTranslation(language, combinedVersions),
+    doFinalTranslation(language, combinedVersions),
+  ]);
+
+  debugger;
+
+  const { mismatches: mismatchesF } = traverseAndCompareNg(combinedVersions, versionFinal1, versionFinal2, {}, []);
+  console.log('🔍 Mismatches found:', mismatchesF.length);
+  console.log(mismatchesF);
+
+  // const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
+  // if (fs.existsSync(targetFile)) {
+  //   const referenceFile = readJSON(targetFile);
+  //   console.log('📄 Comparing with existing translation file:', targetFile);
+
+  //   const { out: finalOut, mismatches: finalMismatches } = traverseAndCompareNg(source, out1, referenceFile, {}, []);
+
+  //   // console.log('✅ Final cleaned translations', JSON.stringify(finalOut, null, 2));
+
+  //   console.log('🔍 Final mismatches found:', finalMismatches.length);
+  //   console.log(finalMismatches.map(m => ({ key: m.key, SOURCE: m.source, TRANSL: m.translated, REVIEW: m.reviewed })));
+  // }
+  // return cleaned;
 }
 
 // ---- run ---------------------------------------------------
@@ -148,6 +227,10 @@ async function entropyEliminator(sourceDDD, language, file) {
 (async () => {
   console.clear();
   console.log('🌍 Translating EN → FR');
+
+  // console.log(targetLanguages);
+
+  // const source = readJSON(SOURCE_FILE);
 
   entropyEliminator('', 'fr', SOURCE_FILE);
 
