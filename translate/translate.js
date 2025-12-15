@@ -6,7 +6,6 @@ import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
 import { createInterface } from './translate.ui.js';
 import { doReviewRemainingTranslation, doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
-import { infoStep, separator } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -34,6 +33,7 @@ let interfaceMap = {
   languages: 'fr,dfsd',
   activeLanguage: '',
   candidates: 0,
+  rootFile,
   callsLogs: {
 
   },
@@ -69,22 +69,24 @@ const writeJSON = (file, data) => {
 };
 
 
-const STEP_loadAndValidateSource = (file) => {
+const STEP_loadAndValidateSource = () => {
   try {
-    const source = readJSON(file);
-    interfaceMap = { ...interfaceMap, originalInput: JSON.stringify(source, null, 2) };
-    console.log('LOADING FILES');
-    infoStep('✅ Loaded file', file);
-
+    const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
+
+    interfaceMap = {
+      ...interfaceMap,
+      originalInput: JSON.stringify(source, null, 2), //deprecate
+      source: JSON.stringify(source, null, 2),
+      sourceFeatures
+    };
+
     const sourceErrors = validateTranslation(sourceFeatures, source);
 
     if (sourceErrors.length > 0) {
       console.error('❌ Source validation errors found:', sourceErrors);
       process.exit(1);
     }
-
-    separator();
 
     return { source, sourceFeatures };
   } catch (e) {
@@ -207,7 +209,11 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
 //   );
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
-  interfaceMap = { ...interfaceMap, mismatches: traverseResults.mismatches, out: JSON.stringify(traverseResults.out, null, 2) };
+  interfaceMap = {
+    ...interfaceMap,
+    mismatches: traverseResults.mismatches,
+    out: JSON.stringify(traverseResults.out, null, 2)
+  };
 
   return traverseResults;
 }
@@ -391,20 +397,12 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
   return combinedPeerReviews
 }
 
-async function entropyEliminator(language, file, candidates) {
+async function entropyEliminator(language, candidates) {
   const counts = candidates
-  const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
+  const { source, sourceFeatures } = STEP_loadAndValidateSource(interfaceMap.rootFile);
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  // return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
-
-  // const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
-  //   ...item,
-  //   translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-  //   opinions: combinedPeerReviews.map(review => review[idx].opinion),
-  //   hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
-  // }));
 
   const updatedMismatches = mismatches.map((item, idx) => ({
     ...item,
@@ -415,19 +413,12 @@ async function entropyEliminator(language, file, candidates) {
 
   interfaceMap = { ...interfaceMap, mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>') };
 
-  // console.log('\n✅ Combined peer review results:', updatedMismatches);
-  // const remainingTasks = combinedResults.filter(r => r.hasEntropy === '<<EntropyDetected>>')
-  //   .map(r => ({ ...r, opinion: 'Your opinion...', result: '' }))
-  //   .map(r => {
-  //     delete r.hasEntropy;
-  //     return r;
-  //   })
 
   const fixedTranslations = { ...translated };
   for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
     fixedTranslations[task.key] = task.result;
   }
-    interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
+  interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
 
   return
 
@@ -463,7 +454,7 @@ async function entropyEliminator(language, file, candidates) {
 
   for (const lang of targetLanguages) {
     interfaceMap = { ...interfaceMap, activeLanguage: lang };
-    await entropyEliminator(lang, SOURCE_FILE, candidates);
+    await entropyEliminator(lang, candidates);
   }
 })();
 

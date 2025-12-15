@@ -105,6 +105,18 @@ const createMismatchesTree = (grid, interfaceMap) => {
   )
 }
 
+const createLogsBox = (grid, interfaceMap) => {
+  grid.set(0, 15, rows, 5, blessed.box, {
+    label: 'Logs',
+    style: {
+      fg: 'white',
+      bg: 'black',
+      padding: 1,
+    },
+    content: interfaceMap.logs || '...no logs yet'
+  })
+}
+
 export async function createInterface(interfaceMap) {
   let screen = blessed.screen()
 
