@@ -1,6 +1,7 @@
 import blessed from 'blessed';
 import contrib from 'blessed-contrib';
 import 'dotenv/config';
+import { mocks } from './utils.js';
 
 const rows = 21
 const cols = 21
@@ -129,7 +130,7 @@ const createLogsBox = (grid, interfaceMap) => {
 
 const createCandidates = (grid, interfaceMap) => {
   const candidates = grid.set(rows - interfaceMap.candidates, 5, interfaceMap.candidates, 8, blessed.box, {
-    label: 'Candidates' + ` [${interfaceMap.candidates}] [active: ${interfaceMap.activeCandidates.length}]`,
+    label: 'Candidates' + ` [${interfaceMap.candidates}] [active: ${interfaceMap.activeCandidates.length}] [usingMocks: ${mocks ? 'YES' : 'NO'}]`,
     tags: true,
     style: {
       fg: 'white',

@@ -11,6 +11,7 @@ import { mocks } from './utils.js';
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const cfg = pkg['i18next-ai-translate'];
+let lastRenderedSizeHash = 0;
 
 let engineUsedIndex = 0;
 let candidates = 3;
@@ -109,7 +110,7 @@ const writeJSON = (file, data) => {
 };
 
 const doTranslateWithRetries = async (retries = 3, index = 0) => {
-  let combinedTranslations = [
+  let mockData = [
     {
       "about.buildnumber": "Numéro de build :",
       "about.cloudEdition": "Cloud",
@@ -152,7 +153,7 @@ const doTranslateWithRetries = async (retries = 3, index = 0) => {
       let result
       setCandidateAsActive(index);
       if (mocks) {
-        result = combinedTranslations[index];
+        result = mockData[index];
       } else {
         result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog, guidance);
       }
@@ -175,83 +176,7 @@ const doTranslateWithRetries = async (retries = 3, index = 0) => {
 }
 
 const doPeerReviewWithRetries = async (retries = 3, index = 0) => {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const result = await doReviewTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
-      return result
-    } catch (error) {
-      console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
-      if (attempt === retries) {
-        throw new Error('Max translation attempts reached. Aborting.');
-      }
-      console.log('🔄 Retrying translation...');
-    }
-  }
-}
-
-const doPeerReviewRemainingWithRetries = async (retries = 3, index = 0) => {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const result = await doReviewRemainingTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
-      return result
-    } catch (error) {
-      console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
-      if (attempt === retries) {
-        throw new Error('Max translation attempts reached. Aborting.');
-      }
-      console.log('🔄 Retrying translation...');
-    }
-  }
-}
-
-const STEP_loadAndValidateSource = async () => {
-  try {
-    const source = readJSON(interfaceMap.rootFile);
-    const sourceFeatures = extractFeatures(source);
-
-    const targetFile = path.join(ROOT, `public/locales/${interfaceMap.activeLanguage}/translation.json`);
-
-    interfaceMap = {
-      ...interfaceMap,
-      originalInput: JSON.stringify(source, null, 2), //deprecate
-      source,
-      reference: fs.existsSync(targetFile) ? JSON.stringify(readJSON(targetFile), null, 2) : '...no reference file found',
-      sourceFeatures
-    };
-
-    const sourceErrors = validateTranslation(sourceFeatures, source);
-
-    if (sourceErrors.length > 0) {
-      console.error('❌ Source validation errors found:', sourceErrors);
-      process.exit(1);
-    }
-
-
-    return { source, sourceFeatures };
-  } catch (e) {
-    console.error('❌ Error loading or validating source file:', e.message);
-    process.exit(1);
-  }
-}
-
-const STEP_performTranslation = async () => {
-  const combinedTranslations = await Promise.all(
-    Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(3, index))
-  );
-
-  const traverseResults = traverseAndCollapseEntropy(interfaceMap.source, combinedTranslations);
-
-  interfaceMap = {
-    ...interfaceMap,
-    mismatches: traverseResults.mismatches,
-    out: JSON.stringify(traverseResults.out, null, 2)
-  };
-
-  return traverseResults;
-}
-
-const STEP_performPeerCritique = async () => {
-  let combinedPeerReviews = [
+  let mockData = [
     [
       {
         key: "about.buildnumber",
@@ -411,34 +336,29 @@ const STEP_performPeerCritique = async () => {
       },
     ],
   ]
-
-  if (!mocks) {
-    combinedPeerReviews = await Promise.all(
-      Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewWithRetries(3, index))
-    );
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      let result
+      setCandidateAsActive(index);
+      if (mocks) {
+        result = mockData[index];
+      } else {
+        result = await doReviewTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
+      }
+      unsetCandidateAsActive(index);
+      return result
+    } catch (error) {
+      console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
+      if (attempt === retries) {
+        throw new Error('Max translation attempts reached. Aborting.');
+      }
+      console.log('🔄 Retrying translation...');
+    }
   }
-
-  const updatedMismatches = interfaceMap.mismatches.map((item, idx) => ({
-      ...item,
-      translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-      opinions: combinedPeerReviews.map(review => review[idx].opinion),
-      result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
-  }));
-
-  const fixedTranslations = { ...JSON.parse(interfaceMap.out) };
-  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
-    fixedTranslations[task.key] = task.result;
-  }
-
-  interfaceMap = {
-    ...interfaceMap,
-    mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>'),
-    out: JSON.stringify(fixedTranslations, null, 2)
-  };
 }
 
-const STEP_performPeerRemainingCritique = async () => {
-  let combinedPeerReviews = [
+const doPeerReviewRemainingWithRetries = async (retries = 3, index = 0) => {
+  let mockData = [
     [
       {
         key: "about.copyright",
@@ -516,18 +436,109 @@ const STEP_performPeerRemainingCritique = async () => {
       },
     ],
   ]
-
-  if (!mocks) {
-    combinedPeerReviews = await Promise.all(
-      Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewRemainingWithRetries(3, index))
-    );
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      let result
+      setCandidateAsActive(index);
+      if (mocks) {
+        result = mockData[index];
+      } else {
+        result = await doReviewRemainingTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
+      }
+      unsetCandidateAsActive(index);
+      return result
+    } catch (error) {
+      console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
+      if (attempt === retries) {
+        throw new Error('Max translation attempts reached. Aborting.');
+      }
+      console.log('🔄 Retrying translation...');
+    }
   }
+}
+
+const STEP_loadAndValidateSource = async () => {
+  try {
+    const source = readJSON(interfaceMap.rootFile);
+    const sourceFeatures = extractFeatures(source);
+
+    const targetFile = path.join(ROOT, `public/locales/${interfaceMap.activeLanguage}/translation.json`);
+
+    interfaceMap = {
+      ...interfaceMap,
+      originalInput: JSON.stringify(source, null, 2), //deprecate
+      source,
+      reference: fs.existsSync(targetFile) ? JSON.stringify(readJSON(targetFile), null, 2) : '...no reference file found',
+      sourceFeatures
+    };
+
+    const sourceErrors = validateTranslation(sourceFeatures, source);
+
+    if (sourceErrors.length > 0) {
+      console.error('❌ Source validation errors found:', sourceErrors);
+      process.exit(1);
+    }
+
+
+    return { source, sourceFeatures };
+  } catch (e) {
+    console.error('❌ Error loading or validating source file:', e.message);
+    process.exit(1);
+  }
+}
+
+const STEP_performTranslation = async () => {
+  const combined = await Promise.all(
+    Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(3, index))
+  );
+
+  const traverseResults = traverseAndCollapseEntropy(interfaceMap.source, combined);
+
+  interfaceMap = {
+    ...interfaceMap,
+    mismatches: traverseResults.mismatches,
+    out: JSON.stringify(traverseResults.out, null, 2)
+  };
+}
+
+const STEP_performPeerCritique = async () => {
+  const combined = await Promise.all(
+    Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewWithRetries(3, index))
+  );
 
   const updatedMismatches = interfaceMap.mismatches.map((item, idx) => ({
       ...item,
-      translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-      opinions: combinedPeerReviews.map(review => review[idx].opinion),
-      result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
+      translations: [...new Set(combined.map(review => review[idx].result))],
+      opinions: combined.map(review => review[idx].opinion),
+      result: [...new Set(combined.map(review => review[idx].result))].length === 1 ? combined[0][idx].result : '<<EntropyDetected>>',
+  }));
+
+  const fixedTranslations = { ...JSON.parse(interfaceMap.out) };
+  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
+    fixedTranslations[task.key] = task.result;
+  }
+
+  interfaceMap = {
+    ...interfaceMap,
+    mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>'),
+    out: JSON.stringify(fixedTranslations, null, 2)
+  };
+}
+
+const STEP_performPeerRemainingCritique = async () => {
+  if(interfaceMap.mismatches.length === 0) {
+    return;
+  }
+
+  const combined = await Promise.all(
+    Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewRemainingWithRetries(3, index))
+  );
+
+  const updatedMismatches = interfaceMap.mismatches.map((item, idx) => ({
+      ...item,
+      translations: [...new Set(combined.map(review => review[idx].result))],
+      opinions: combined.map(review => review[idx].opinion),
+      result: [...new Set(combined.map(review => review[idx].result))].length === 1 ? combined[0][idx].result : '<<EntropyDetected>>',
   }));
 
   const fixedTranslations = { ...JSON.parse(interfaceMap.out) };
@@ -572,6 +583,12 @@ async function entropyEliminator() {
 })();
 
 (async () => {
-  setInterval(() => { createInterface(interfaceMap) }, 1000);
+  setInterval(() => {
+    const newSizeHash = JSON.stringify(interfaceMap).length;
+    if (newSizeHash !== lastRenderedSizeHash) {
+      createInterface(interfaceMap)
+      lastRenderedSizeHash = newSizeHash;
+    }
+  }, 100);
   createInterface(interfaceMap);
 })();
