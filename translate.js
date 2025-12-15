@@ -110,6 +110,21 @@ const doPeerReviewWithRetries = async (mismatches, language, retries = 3) => {
   }
 }
 
+const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 3) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const result = await doReviewRemainingTranslation(mismatches, language);
+      return result
+    } catch (error) {
+      console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
+      if (attempt === retries) {
+        throw new Error('Max translation attempts reached. Aborting.');
+      }
+      console.log('🔄 Retrying translation...');
+    }
+  }
+}
+
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
 console.log('SPAWNING TRANSLATORS');
  const combinedTranslations = await Promise.all(
@@ -135,6 +150,16 @@ const STEP_performPeerCritique = async (mismatches, language, counts) => {
   return combinedPeerReviews
 }
 
+const STEP_performPeerRemainingCritique = async (mismatches, language, counts) => {
+  console.log('PERFORM REVIEW');
+ const combinedPeerReviews = await Promise.all(
+   Array.from({ length: counts }).map(() => doPeerReviewRemainingWithRetries(mismatches, language))
+  );
+
+  console.log('\n✅ Peer critiques done.', combinedPeerReviews);
+  return combinedPeerReviews
+}
+
 async function entropyEliminator(sourceDDD, language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
@@ -145,17 +170,29 @@ async function entropyEliminator(sourceDDD, language, file) {
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
     ...item,
-    result: combinedPeerReviews.map(review => review[idx].result).every(r => r === item.result) ? item.result : '<<EntropyDetected>>',
+    translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+    opinions: combinedPeerReviews.map(review => review[idx].opinion),
+    hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
   }));
 
-  // return
-
-  const remainingTasks = combinedResults.filter(r => r.result === '<<EntropyDetected>>');
-  const solvedTasks = combinedResults.filter(r => r.result !== '<<EntropyDetected>>');
+  const remainingTasks = combinedResults.filter(r => r.hasEntropy === '<<EntropyDetected>>')
+    .map(r => ({ ...r, opinion: 'Your opinion...', result: '' }))
+    .map(r => {
+      delete r.hasEntropy;
+      return r;
+    })
 
   const fixedTranslations = { ...translated };
-  for (const task of solvedTasks) {
+  for (const task of combinedResults.filter(r => r.hasEntropy === '')) {
     fixedTranslations[task.key] = task.result;
+  }
+
+  if(remainingTasks.length > 0) {
+    console.log('\n🔄 Remaining tasks to resolve entropy:', remainingTasks.length, remainingTasks);
+
+    const finalResults = await STEP_performPeerRemainingCritique(remainingTasks, language, counts);
+    console.log('\n✅ Final peer critiques done.', finalResults);
+
   }
 
   console.log('\n✅ Fixed translations before peer review:', translated);

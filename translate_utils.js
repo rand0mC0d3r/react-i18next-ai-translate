@@ -113,6 +113,32 @@ export async function doReviewTranslation(mismatches, language) {
   }
 }
 
+export async function doReviewRemainingTranslation(mismatches, language) {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are a critical localization engine. ' +
+        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, and an array of suggested translations for translating to ${language} and previous opinions given by yourself and other AI's asked. ` +
+        `Write at key 'opinion' your thoughts about the translations and opinions and which is the best one. ` +
+        `Write at key 'result' looking at the translations the answer that you think is the best. ` +
+        'No non-whitespace characters outside the JSON structure.' +
+        'Return ONLY valid JSON. Return the object at the same nesting level. Do not wrap it in a new object.'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(mismatches)
+    }
+  ]
+
+  try {
+    return await translate(language, messages);
+  } catch (err) {
+    console.error('Translation error:', err.message);
+    throw e;
+  }
+}
+
 
 export async function doFinalTranslation(language, mismatches, answerOne, answerTwo, targetField) {
   const messages = [
