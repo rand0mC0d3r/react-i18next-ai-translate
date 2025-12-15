@@ -223,7 +223,7 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
   return traverseResults;
 }
 
-const STEP_performPeerCritique = async (mismatches, language, counts) => {
+const STEP_performPeerCritique = async () => {
   let combinedPeerReviews = [
     [
       {
@@ -387,11 +387,11 @@ const STEP_performPeerCritique = async (mismatches, language, counts) => {
 
   if (!mocks) {
     combinedPeerReviews = await Promise.all(
-      Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
+      Array.from({ length: interfaceMap.candidates }).map(() => doPeerReviewWithRetries(interfaceMap.mismatches, interfaceMap.activeLanguage))
     );
   }
 
-  const updatedMismatches = mismatches.map((item, idx) => ({
+  const updatedMismatches = interfaceMap.mismatches.map((item, idx) => ({
       ...item,
       translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
       opinions: combinedPeerReviews.map(review => review[idx].opinion),
@@ -425,7 +425,7 @@ async function entropyEliminator(language, candidates) {
   const { source, sourceFeatures } = STEP_loadAndValidateSource();
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  await STEP_performPeerCritique(mismatches, language, counts);
+  await STEP_performPeerCritique();
 
   // const updatedMismatches = mismatches.map((item, idx) => ({
   //   ...item,
