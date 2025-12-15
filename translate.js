@@ -142,7 +142,6 @@ async function entropyEliminator(sourceDDD, language, file) {
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
-  // const combinedPeerReviews = combinedPeerReviewsData
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
     ...item,
@@ -152,6 +151,14 @@ async function entropyEliminator(sourceDDD, language, file) {
   // return
 
   const remainingTasks = combinedResults.filter(r => r.result === '<<EntropyDetected>>');
+  const solvedTasks = combinedResults.filter(r => r.result !== '<<EntropyDetected>>');
+
+  const fixedTranslations = { ...translated };
+  for (const task of solvedTasks) {
+    fixedTranslations[task.originalSourceKey] = task.result;
+  }
+
+  console.log('\n✅ Fixed translations after peer review:', fixedTranslations);
 
   console.log('✅ Combined peer review results:', combinedResults, remainingTasks.length, remainingTasks);
 
