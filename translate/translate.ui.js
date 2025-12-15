@@ -18,21 +18,21 @@ const createTargetLanguages = (grid, interfaceMap) => {
 }
 
 const createSourceInput = (grid, interfaceMap) => {
-  grid.set(1, 0, rows - 1 - interfaceMap.candidates, 4, blessed.box, {
+  grid.set(0, 0, rows - interfaceMap.candidates, 5, blessed.box, {
     label: 'Source Input',
     content: interfaceMap.originalInput
   })
 }
 
-export async function createInterface(interfaceMap) {
-  let screen = blessed.screen()
+const createSourceOutput = (grid, interfaceMap) => {
+  grid.set(0, cols -5, rows - interfaceMap.candidates, 5, blessed.box, {
+    label: 'Source Output',
+    content: interfaceMap.out || '...no data yet',
+  })
+}
 
-  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
-
-  createTargetLanguages(grid, interfaceMap);
-  createSourceInput(grid, interfaceMap);
-
-  const tree = grid.set(0, 4, rows, 6, contrib.tree, {
+const createMismatchesTree = (grid, interfaceMap) => {
+  const tree = grid.set(0, 5, rows, 10, contrib.tree, {
     label: 'Mismatches',
     vi: true,
     mouse: true,
@@ -43,7 +43,6 @@ export async function createInterface(interfaceMap) {
       }
     }
   })
-  // tree.setData(treeData)
   tree.setData({
     name: 'root',
     extended: true,
@@ -69,10 +68,17 @@ export async function createInterface(interfaceMap) {
     }))
   }
   )
-  grid.set(0, 10, rows, 10, contrib.log, {
-    label: 'Logs',
-    content: interfaceMap.logs.join('\n'),
-  })
+}
+
+export async function createInterface(interfaceMap) {
+  let screen = blessed.screen()
+
+  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
+
+  // createTargetLanguages(grid, interfaceMap);
+  createSourceInput(grid, interfaceMap);
+  createSourceOutput(grid, interfaceMap);
+  createMismatchesTree(grid, interfaceMap);
 
   // Candidates box
   grid.set(rows - interfaceMap.candidates, 0, interfaceMap.candidates, cols, blessed.box, {

@@ -164,9 +164,47 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
- const combinedTranslations = await Promise.all(
-    Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
-  );
+  const combinedTranslations = [
+  {
+    "about.buildnumber": "Numéro de build :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date de build :",
+    "about.dbversion": "Version du schéma de base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+    "about.hash": "Hash de build :",
+  },
+  {
+    "about.buildnumber": "Numéro de version :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date de création :",
+    "about.dbversion": "Version du schéma de la base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+    "about.hash": "Hash de création :",
+  },
+  {
+    "about.buildnumber": "Numéro de build :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date de build :",
+    "about.dbversion": "Version du schéma de base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+    "about.hash": "Hash de build :",
+  },
+]
+//  const combinedTranslations = await Promise.all(
+//     Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
+//   );
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
   interfaceMap = { ...interfaceMap, mismatches: traverseResults.mismatches };
@@ -198,8 +236,8 @@ async function entropyEliminator(language, file, candidates) {
   const counts = candidates
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
-    interfaceMap = { ...interfaceMap, out: source };
-  return
+  interfaceMap = { ...interfaceMap, out: JSON.stringify(source, null, 2) };
+  // return
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
   return
