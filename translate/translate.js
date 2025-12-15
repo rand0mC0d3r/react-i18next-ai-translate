@@ -65,8 +65,24 @@ const SOURCE_FILE = rootFile
 // ---- helpers -----------------------------------------------
 
 const appendLog = (msg) => {
-  const timestamp = new Date().toISOString();
+  const timestamp = new Date().toLocaleTimeString();
   interfaceMap = { ...interfaceMap, logs: [...interfaceMap.logs, `[${timestamp}] ${msg}`] };
+}
+
+export const appendSuccessLog = (msg) => {
+  appendLog(`✅ ${msg}`);
+}
+
+export const appendWarningLog = (msg) => {
+  appendLog(`⚠️ ${msg}`);
+}
+
+export const appendInfoLog = (msg) => {
+  appendLog(`ℹ️ ${msg}`);
+}
+
+export const appendErrorLog = (msg) => {
+  appendLog(`❌ ${msg}`);
 }
 
 const emitTranslationLog = (model, index, status, duration, reason) => {
@@ -459,10 +475,17 @@ const doPeerReviewRemainingWithRetries = async (retries = 3, index = 0) => {
 
 const STEP_loadAndValidateSource = async () => {
   try {
+    console.log('ddd')
     const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
+    appendSuccessLog(`Source file loaded: ${interfaceMap.rootFile}`);
 
     const targetFile = path.join(ROOT, `public/locales/${interfaceMap.activeLanguage}/translation.json`);
+    if(!fs.existsSync(targetFile)) {
+      appendWarningLog(`No reference file found for language ${interfaceMap.activeLanguage} at ${targetFile}`);
+    } else {
+      appendSuccessLog(`Reference file found for language ${interfaceMap.activeLanguage}`);
+    }
 
     interfaceMap = {
       ...interfaceMap,
@@ -475,14 +498,14 @@ const STEP_loadAndValidateSource = async () => {
     const sourceErrors = validateTranslation(sourceFeatures, source);
 
     if (sourceErrors.length > 0) {
-      console.error('❌ Source validation errors found:', sourceErrors);
+      appendErrorLog(`Source validation errors found: ${sourceErrors}`);
       process.exit(1);
     }
 
 
     return { source, sourceFeatures };
   } catch (e) {
-    console.error('❌ Error loading or validating source file:', e.message);
+    appendErrorLog(`❌ Error loading or validating source file: ${e.message}`);
     process.exit(1);
   }
 }
