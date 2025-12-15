@@ -32,8 +32,8 @@ const createSourceOutput = (grid, interfaceMap) => {
 }
 
 const createMismatchesTreeNg = (grid, interfaceMap) => {
-const itemsPerColumn = 4
-  const boxHeight = 4
+  const itemsPerColumn = 2
+  const boxHeight = 6
   const boxWidth = 5
 
   interfaceMap.mismatches.forEach((m, i) => {
@@ -53,7 +53,9 @@ const itemsPerColumn = 4
         alwaysScroll: true,
         content:
           `source:\n${m.source}\n\n` +
-          `opinion: ${m.opinion}\n\n` +
+          `opinions:\n${(m.opinions || [])
+            .map((o, j) => `  [${j + 1}] ${o}`)
+            .join('\n')}\n\n` +
           `translations:\n${m.translations
             .map((t, j) => `  [${j + 1}] ${t}`)
             .join('\n')}\n\n` +

@@ -214,9 +214,169 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
 
 const STEP_performPeerCritique = async (mismatches, language, counts) => {
   console.log('PERFORM REVIEW');
- const combinedPeerReviews = await Promise.all(
-   Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
-  );
+//  const combinedPeerReviews = await Promise.all(
+//    Array.from({ length: counts }).map(() => doPeerReviewWithRetries(mismatches, language))
+//  );
+  const combinedPeerReviews = [
+    [
+      {
+        key: "about.buildnumber",
+        opinion: "Both translations are correct, but 'Numéro de build :' is more commonly used in software contexts.",
+        result: "Numéro de build :",
+      },
+      {
+        key: "about.copyright",
+        opinion: "All translations are correct. The second translation 'Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' uses a more standard phrasing in French.",
+        result: "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      },
+      {
+        key: "about.date",
+        opinion: "'Date de build :' is a more direct and appropriate translation for the context of software builds.",
+        result: "Date de build :",
+      },
+      {
+        key: "about.dbversion",
+        opinion: "Both translations are correct, but 'Version du schéma de base de données :' is slightly more fluent and clear.",
+        result: "Version du schéma de base de données :",
+      },
+      {
+        key: "about.enterpriseEditionSst",
+        opinion: "Both translations are acceptable, but 'Messagerie de haute confiance pour l'entreprise' sounds more natural and professional in French.",
+        result: "Messagerie de haute confiance pour l'entreprise",
+      },
+      {
+        key: "about.hash",
+        opinion: "'Hash de build :' is more specific and appropriate for the context of software development.",
+        result: "Hash de build :",
+      },
+    ],
+    [
+      {
+        key: "about.buildnumber",
+        source: "Build Number:",
+        translations: [
+          "Numéro de build :",
+          "Numéro de version :",
+        ],
+        opinion: "Both translations are understandable, but 'Numéro de build :' is more literal and closer to the original technical term. 'Numéro de version :' could be misleading as it refers more to version number than build number. Therefore, the first translation is better.",
+        result: "Numéro de build :",
+      },
+      {
+        key: "about.copyright",
+        source: "Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved",
+        translations: [
+          "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        ],
+        opinion: "The correct French term is 'Droits d'auteur' (plural). The first translation uses the singular 'Droit d'auteur' which is less common. The third translation keeps 'Copyright' in English, which is less localized. Therefore, the second translation is the best choice.",
+        result: "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      },
+      {
+        key: "about.date",
+        source: "Build Date:",
+        translations: [
+          "Date de build :",
+          "Date de création :",
+        ],
+        opinion: "'Date de build :' is a direct translation but uses the English word 'build' which might be acceptable in technical contexts. 'Date de création :' is more natural French but less precise technically. Given the context, 'Date de build :' is preferable to keep technical accuracy.",
+        result: "Date de build :",
+      },
+      {
+        key: "about.dbversion",
+        source: "Database Schema Version:",
+        translations: [
+          "Version du schéma de base de données :",
+          "Version du schéma de la base de données :",
+        ],
+        opinion: "Both translations are correct and natural. The second one is slightly more formal and clearer by including 'de la base de données'. It is preferable for clarity.",
+        result: "Version du schéma de la base de données :",
+      },
+      {
+        key: "about.enterpriseEditionSst",
+        source: "High trust messaging for the enterprise",
+        translations: [
+          "Messagerie de haute confiance pour l'entreprise",
+          "Messagerie de confiance élevée pour l'entreprise",
+        ],
+        opinion: "Both translations convey the meaning, but 'Messagerie de haute confiance' sounds more natural and idiomatic in French than 'confiance élevée'. Therefore, the first translation is better.",
+        result: "Messagerie de haute confiance pour l'entreprise",
+      },
+      {
+        key: "about.hash",
+        source: "Build Hash:",
+        translations: [
+          "Hash de build :",
+          "Hash de création :",
+        ],
+        opinion: "'Hash de build :' is a more direct and accurate translation of 'Build Hash'. 'Hash de création :' is less precise and could be ambiguous. The first translation is preferable.",
+        result: "Hash de build :",
+      },
+    ],
+    [
+      {
+        key: "about.buildnumber",
+        source: "Build Number:",
+        translations: [
+          "Numéro de build :",
+          "Numéro de version :",
+        ],
+        opinion: "Both translations are correct, but 'Numéro de build :' is more accurate as it directly translates to 'Build Number'.",
+        result: "Numéro de build :",
+      },
+      {
+        key: "about.copyright",
+        source: "Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved",
+        translations: [
+          "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        ],
+        opinion: "All translations are correct, but 'Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' is more commonly used in French.",
+        result: "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      },
+      {
+        key: "about.date",
+        source: "Build Date:",
+        translations: [
+          "Date de build :",
+          "Date de création :",
+        ],
+        opinion: "Both translations are correct, but 'Date de build :' is more accurate as it directly translates to 'Build Date'.",
+        result: "Date de build :",
+      },
+      {
+        key: "about.dbversion",
+        source: "Database Schema Version:",
+        translations: [
+          "Version du schéma de base de données :",
+          "Version du schéma de la base de données :",
+        ],
+        opinion: "Both translations are correct and mean the same thing.",
+        result: "Version du schéma de base de données :",
+      },
+      {
+        key: "about.enterpriseEditionSst",
+        source: "High trust messaging for the enterprise",
+        translations: [
+          "Messagerie de haute confiance pour l'entreprise",
+          "Messagerie de confiance élevée pour l'entreprise",
+        ],
+        opinion: "Both translations are correct, but 'Messagerie de haute confiance pour l'entreprise' is more commonly used in French.",
+        result: "Messagerie de haute confiance pour l'entreprise",
+      },
+      {
+        key: "about.hash",
+        source: "Build Hash:",
+        translations: [
+          "Hash de build :",
+          "Hash de création :",
+        ],
+        opinion: "Both translations are correct, but 'Hash de build :' is more accurate as it directly translates to 'Build Hash'.",
+        result: "Hash de build :",
+      },
+    ],
+  ]
 
   console.log('\n✅ Peer critiques done.', combinedPeerReviews);
   return combinedPeerReviews
@@ -237,7 +397,7 @@ async function entropyEliminator(language, file, candidates) {
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  return
+  // return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
@@ -247,6 +407,16 @@ async function entropyEliminator(language, file, candidates) {
     hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
   }));
 
+  const updatedMismatches = mismatches.map((item, idx) => ({
+    ...item,
+    // translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+    opinions: combinedPeerReviews.map(review => review[idx].opinion),
+    // hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
+  }));
+
+  interfaceMap = { ...interfaceMap, mismatches: updatedMismatches };
+
+  console.log('\n✅ Combined peer review results:', updatedMismatches);
   const remainingTasks = combinedResults.filter(r => r.hasEntropy === '<<EntropyDetected>>')
     .map(r => ({ ...r, opinion: 'Your opinion...', result: '' }))
     .map(r => {
@@ -258,6 +428,8 @@ async function entropyEliminator(language, file, candidates) {
   for (const task of combinedResults.filter(r => r.hasEntropy === '')) {
     fixedTranslations[task.key] = task.result;
   }
+
+  return
 
   if(remainingTasks.length > 0) {
     console.log('\n🔄 Remaining tasks to resolve entropy:', remainingTasks.length, remainingTasks);
