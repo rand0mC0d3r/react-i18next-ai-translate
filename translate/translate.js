@@ -35,32 +35,7 @@ let interfaceMap = {
   activeLanguage: '',
   candidates: 0,
   callsLogs: {
-    0: [
-      {
-      reason: 'translation',
-      duration: '234ms',
-      model: 'gpt-4o-mini',
-      status: '200 OK',
-      },
-      {
-        reason: 'review',
-      duration: '211ms',
-      model: 'gpt-4o-mini',
-      status: '200 OK',
-    }
-    ],
-    1: [{
-      reason: 'translation',
-      duration: '345ms',
-      model: 'gpt-3.5-turbo',
-      status: '200 OK',
-    }],
-    2: [{
-      reason: 'translation',
-      duration: '456ms',
-      model: 'gpt-4o',
-      status: '200 OK',
-    }]
+
   },
 }
 
@@ -118,10 +93,10 @@ const STEP_loadAndValidateSource = (file) => {
   }
 }
 
-
 const doTranslateWithRetries = async (source, language, sourceFeatures, retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      console.log(`TRANSLATING [Attempt ${attempt}]`, language, index);
       const emitTranslationLog = (model, index, status, duration) => {
         interfaceMap = {
           ...interfaceMap,
@@ -190,46 +165,8 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
-//   const combinedTranslations = [
-//   {
-//     "about.buildnumber": "Numéro de build :",
-//     "about.cloudEdition": "Cloud",
-//     "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-//     "about.database": "Base de données :",
-//     "about.date": "Date du build :",
-//     "about.dbversion": "Version du schéma de la base de données :",
-//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-//     "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-//     "about.enterpriseEditionSt": "Communication moderne depuis votre pare-feu.",
-//     "about.hash": "Hash du build :",
-//   },
-//   {
-//     "about.buildnumber": "Numéro de version :",
-//     "about.cloudEdition": "Cloud",
-//     "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-//     "about.database": "Base de données :",
-//     "about.date": "Date de création :",
-//     "about.dbversion": "Version du schéma de la base de données :",
-//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-//     "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
-//     "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-//     "about.hash": "Hachage de création :",
-//   },
-//   {
-//     "about.buildnumber": "Numéro de build :",
-//     "about.cloudEdition": "Cloud",
-//     "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-//     "about.database": "Base de données :",
-//     "about.date": "Date de build :",
-//     "about.dbversion": "Version du schéma de base de données :",
-//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-//     "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-//     "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-//     "about.hash": "Hash de build :",
-//   },
-// ]
  const combinedTranslations = await Promise.all(
-    Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, index))
+    Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
   );
   console.log('\n✅ Initial translations done.', combinedTranslations);
 
@@ -264,9 +201,6 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
 async function entropyEliminator(language, file, candidates) {
   const counts = candidates
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
-
-
-
 
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 

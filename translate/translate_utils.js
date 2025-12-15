@@ -8,6 +8,7 @@ const cfg = pkg['i18next-ai-translate'];
 
 let engineUsedIndex = 0;
 const models = ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4', 'gpt-4.1-mini', 'gpt-4-turbo'];
+// const models = ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4.1-mini', 'gpt-4-turbo'];
 
 if (!cfg) {
   throw new Error('Missing i18next-ai-translate config in package.json');
