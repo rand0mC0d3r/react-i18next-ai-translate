@@ -7,10 +7,15 @@ export async function createInterface(interfaceMap) {
   const rows = 20
   const cols = 20
 
-  var grid = new contrib.grid({ rows, cols, screen })
+  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
 
   grid.set(0, 0, 1, 4, blessed.box, {
-    label: 'Target Languages Now',
+    label: 'Target Languages ' + `[${interfaceMap.languages.length}]`,
+    style: {
+      fg: 'white',
+      bg: 'black',
+      padding: 1,
+    },
     content: interfaceMap.languages.join(', ') + ` (active: ${interfaceMap.activeLanguage})`
   })
   grid.set(1, 0, rows - 1, 4, blessed.box, {
@@ -36,12 +41,20 @@ export async function createInterface(interfaceMap) {
       name: m.key,
       extended: true,
       children: {
-        'key': { name: `key: ${m.key}` },
         'source': { name: `source: ${m.source}` },
-        'result': { name: `result: ${m.result}` },
+
         'opinion': { name: `opinion: ${m.opinion}` },
         'opinions': { name: `opinions: ${m.opinions?.join()}` },
-        'translations': { name: `trandslatdions: ${m.translations.join()}` },
+
+        'translations': {
+          name: `translations: ${m.translations.length}`,
+          extended: true,
+          children: m.translations.reduce((acc, t, i) => {
+            acc[`t${i + 1}`] = { name: t };
+            return acc;
+          }, {})
+        },
+        'result': { name: `result: ${m.result}` },
       }
     }))
   }
