@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import fs from 'fs';
 import process from 'process';
-import { infoStep } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -23,13 +22,13 @@ if (!apiKey) {
   process.exit(1);
 }
 
-export async function translate(language, messages) {
+export async function translate(language, messages, index, callback = () => {}) {
   const t0 = performance.now();
   const modelsToPickFrom = Math.random() < 0.5 ? models : models.reverse();
   const model = modelsToPickFrom[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  infoStep('🤖 Starting translating', model, language);
+  // infoStep('🤖 Starting translating', model, language);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -44,7 +43,8 @@ export async function translate(language, messages) {
     })
   });
   const t1 = performance.now()
-  infoStep('🤖 Fetch complete', model, `${res.status} ${res.statusText} in ${(t1 - t0).toFixed(2)} ms`);
+  // infoStep('🤖 Fetch complete', model, `${res.status} ${res.statusText} in ${(t1 - t0).toFixed(2)} ms`);
+  callback(model, index, `${res.status} ${res.statusText}`, (t1 - t0).toFixed(2));
 
   if (!res.ok) {
     throw new Error(await res.text());
@@ -63,7 +63,7 @@ export async function translate(language, messages) {
   return JSON.parse(processedJson);
 }
 
-export async function doTranslate(source, language) {
+export async function doTranslate(source, language, index = 0, callback = () => {}) {
   const messages = [
     {
       role: 'system',
@@ -80,7 +80,7 @@ export async function doTranslate(source, language) {
   ]
 
   try {
-    return await translate(language, messages);
+    return await translate(language, messages, index, callback);
   } catch (err) {
     console.error('Translation error:', err.message);
     throw e;

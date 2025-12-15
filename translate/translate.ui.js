@@ -18,7 +18,7 @@ export async function createInterface(interfaceMap) {
     },
     content: interfaceMap.languages.join(', ') + ` (active: ${interfaceMap.activeLanguage})`
   })
-  grid.set(1, 0, rows - 1, 4, blessed.box, {
+  grid.set(1, 0, rows - 1 - interfaceMap.candidates, 4, blessed.box, {
     label: 'Source Input',
     content: interfaceMap.originalInput
   })
@@ -62,6 +62,18 @@ export async function createInterface(interfaceMap) {
   grid.set(0, 10, rows, 10, contrib.log, {
     label: 'Logs',
     content: interfaceMap.logs.join('\n'),
+  })
+
+  // Candidates box
+  grid.set(rows - interfaceMap.candidates, 0, interfaceMap.candidates, cols, blessed.box, {
+    label: 'Candidates' + ` [${interfaceMap.candidates}]`,
+    style: {
+      fg: 'white',
+      bg: 'black',
+      padding: 1,
+    },
+    content: `${Array(interfaceMap.candidates).fill(0)
+      .map((_, i) => `Candidate ${i + 1}:\n\t ${interfaceMap.callsLogs[i]?.map(log => `[[${log.reason} ${log.model} (${log.duration})]]`).join(', ')}\n`).join('\n')}`,
   })
   screen.render()
 }

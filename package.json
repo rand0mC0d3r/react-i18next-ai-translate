@@ -25,8 +25,7 @@
   "i18next-ai-translate": {
     "rootFile": "public/locales/translation.1.json",
     "targetLanguages": [
-      "fr",
-      "de"
+      "fr"
     ],
     "targetRegions": [
       "NorthAfrica",

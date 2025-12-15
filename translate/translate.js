@@ -13,6 +13,7 @@ const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const cfg = pkg['i18next-ai-translate'];
 
 let engineUsedIndex = 0;
+let candidates = 3;
 const models = ['gpt-4o-mini', 'gpt-3.5-turbo'];
 
 if (!cfg) {
@@ -32,6 +33,35 @@ let interfaceMap = {
   logs: [],
   languages: 'fr,dfsd',
   activeLanguage: '',
+  candidates: 0,
+  callsLogs: {
+    0: [
+      {
+      reason: 'translation',
+      duration: '234ms',
+      model: 'gpt-4o-mini',
+      status: '200 OK',
+      },
+      {
+        reason: 'review',
+      duration: '211ms',
+      model: 'gpt-4o-mini',
+      status: '200 OK',
+    }
+    ],
+    1: [{
+      reason: 'translation',
+      duration: '345ms',
+      model: 'gpt-3.5-turbo',
+      status: '200 OK',
+    }],
+    2: [{
+      reason: 'translation',
+      duration: '456ms',
+      model: 'gpt-4o',
+      status: '200 OK',
+    }]
+  },
 }
 
 // ---- sanity ------------------------------------------------
@@ -89,10 +119,29 @@ const STEP_loadAndValidateSource = (file) => {
 }
 
 
-const doTranslateWithRetries = async (source, language, sourceFeatures, retries = 3) => {
+const doTranslateWithRetries = async (source, language, sourceFeatures, retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await doTranslate(source, language);
+      const emitTranslationLog = (model, index, status, duration) => {
+        interfaceMap = {
+          ...interfaceMap,
+          callsLogs: {
+            ...interfaceMap.callsLogs,
+            [index]: [
+              ...(interfaceMap.callsLogs[index] || []),
+              {
+                reason: 'translation',
+                model,
+                status,
+                duration,
+              }
+            ]
+          }
+        }
+      }
+
+
+      const result = await doTranslate(source, language, index, emitTranslationLog);
       const validateResults = validateTranslation(sourceFeatures, result);
 
       if (validateResults.length > 0) {
@@ -141,49 +190,47 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
-  console.log('SPAWNING TRANSLATORS');
-
-  const combinedTranslations = [
-  {
-    "about.buildnumber": "Numéro de build :",
-    "about.cloudEdition": "Cloud",
-    "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-    "about.database": "Base de données :",
-    "about.date": "Date du build :",
-    "about.dbversion": "Version du schéma de la base de données :",
-    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-    "about.enterpriseEditionSt": "Communication moderne depuis votre pare-feu.",
-    "about.hash": "Hash du build :",
-  },
-  {
-    "about.buildnumber": "Numéro de version :",
-    "about.cloudEdition": "Cloud",
-    "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-    "about.database": "Base de données :",
-    "about.date": "Date de création :",
-    "about.dbversion": "Version du schéma de la base de données :",
-    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-    "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
-    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-    "about.hash": "Hachage de création :",
-  },
-  {
-    "about.buildnumber": "Numéro de build :",
-    "about.cloudEdition": "Cloud",
-    "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
-    "about.database": "Base de données :",
-    "about.date": "Date de build :",
-    "about.dbversion": "Version du schéma de base de données :",
-    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
-    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
-    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
-    "about.hash": "Hash de build :",
-  },
-]
-//  const combinedTranslations = await Promise.all(
-//     Array.from({ length: counts }).map(() => doTranslateWithRetries(source, language, sourceFeatures))
-//   );
+//   const combinedTranslations = [
+//   {
+//     "about.buildnumber": "Numéro de build :",
+//     "about.cloudEdition": "Cloud",
+//     "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+//     "about.database": "Base de données :",
+//     "about.date": "Date du build :",
+//     "about.dbversion": "Version du schéma de la base de données :",
+//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+//     "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+//     "about.enterpriseEditionSt": "Communication moderne depuis votre pare-feu.",
+//     "about.hash": "Hash du build :",
+//   },
+//   {
+//     "about.buildnumber": "Numéro de version :",
+//     "about.cloudEdition": "Cloud",
+//     "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+//     "about.database": "Base de données :",
+//     "about.date": "Date de création :",
+//     "about.dbversion": "Version du schéma de la base de données :",
+//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+//     "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
+//     "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+//     "about.hash": "Hachage de création :",
+//   },
+//   {
+//     "about.buildnumber": "Numéro de build :",
+//     "about.cloudEdition": "Cloud",
+//     "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+//     "about.database": "Base de données :",
+//     "about.date": "Date de build :",
+//     "about.dbversion": "Version du schéma de base de données :",
+//     "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+//     "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+//     "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+//     "about.hash": "Hash de build :",
+//   },
+// ]
+ const combinedTranslations = await Promise.all(
+    Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, index))
+  );
   console.log('\n✅ Initial translations done.', combinedTranslations);
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
@@ -214,8 +261,8 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
   return combinedPeerReviews
 }
 
-async function entropyEliminator(language, file) {
-  const counts = 3
+async function entropyEliminator(language, file, candidates) {
+  const counts = candidates
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
 
@@ -263,12 +310,14 @@ async function entropyEliminator(language, file) {
 }
 
 (async () => {
-  interfaceMap = { ...interfaceMap, languages: targetLanguages };
+
+
+  interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
   appendLog(`Starting application with target languages: ${targetLanguages.join(', ')}`);
 
   for (const lang of targetLanguages) {
     interfaceMap = { ...interfaceMap, activeLanguage: lang };
-    await entropyEliminator(lang, SOURCE_FILE);
+    await entropyEliminator(lang, SOURCE_FILE, candidates);
     // console.log(`➡️  Language: ${lang}`);
     // const translated = await translate(source, lang);
     // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
