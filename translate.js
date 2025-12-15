@@ -2,7 +2,9 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
-import { doReviewTranslation, doTranslate, traverseAndCompareNg } from './translate_utils.js';
+import { extractFeatures } from './feature-extractor.js';
+import { validateTranslation } from './feature-validator.js';
+import { doFinalTranslation, doReviewTranslation, doTranslate, traverseAndCompareNg } from './translate_utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -46,18 +48,32 @@ const writeJSON = (file, data) => {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 };
 
-// ---- OpenAI call -------------------------------------------
+
+const loadAndValidateSource = (file) => {
+  const source = readJSON(file);
+  const sourceFeatures = extractFeatures(source);
+  const sourceErrors = validateTranslation(sourceFeatures, source);
+
+  if (sourceErrors.length > 0) {
+    console.error('❌ Source validation errors found:', sourceErrors);
+    process.exit(1);
+  }
+
+  return { source, sourceFeatures };
+}
 
 
-async function entropyEliminator(source, language) {
+async function entropyEliminator(sourceDDD, language, file) {
+  const { source, sourceFeatures } = loadAndValidateSource(file);
 
+  // return
   // First, create two independent translations
   const [version1, version2] = await Promise.all([
     doTranslate(source, language),
     doTranslate(source, language),
   ]);
 
-  const { out: out1, mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
+  const { mismatches: mismatches1 } = traverseAndCompareNg(source, version1, version2, {}, []);
   const modified1 = mismatches1.map(m => ({
     key: m.key,
     originalSource: m.source,
@@ -87,7 +103,17 @@ async function entropyEliminator(source, language) {
   console.log('🔍 Mismatches found in second pass:', combinedVersions.length);
   console.log(combinedVersions);
 
+    // Third, do final translation based on combined reviews
+  const [versionFinal1, versionFinal2] = await Promise.all([
+    doFinalTranslation(language, combinedVersions),
+    doFinalTranslation(language, combinedVersions),
+  ]);
 
+  debugger;
+
+  const { mismatches: mismatchesF } = traverseAndCompareNg(combinedVersions, versionFinal1, versionFinal2, {}, []);
+  console.log('🔍 Mismatches found:', mismatchesF.length);
+  console.log(mismatchesF);
 
   // const targetFile = path.join(ROOT, `public/locales/${language}/translation.json`);
   // if (fs.existsSync(targetFile)) {
@@ -112,9 +138,9 @@ async function entropyEliminator(source, language) {
 
   // console.log(targetLanguages);
 
-  const source = readJSON(SOURCE_FILE);
+  // const source = readJSON(SOURCE_FILE);
 
-  entropyEliminator(source, 'fr');
+  entropyEliminator(source, 'fr', SOURCE_FILE);
 
   return;
 

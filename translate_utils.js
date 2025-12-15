@@ -113,8 +113,8 @@ export async function doFinalTranslation(language, mismatches, answerOne, answer
       role: 'system',
       content:
         'You are a critical localization engine. ' +
-        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, your previous answer for translating to ${language}, at key ${answerOne}, and another AI's answer at key: ${answerTwo} for translating to same language ${language}. ` +
-        `Write at key ${targetField} looking at both answers which translation you think fits best. No non-whitespace characters outside the JSON structure. ` +
+        `Iterate over the array and judge how is the translation quality. Each object contains the originalSource of the text, two previous answers at key answerA and answerB and two critiques at key critique and critiqueAlternative. ` +
+        `Write at key result looking at both answers and critiques which translation you think fits best. Write the answer at key result as the content of the string itself. No non-whitespace characters outside the JSON structure. ` +
         'Return ONLY valid JSON. Return the object at the same nesting level. Do not wrap it in a new object.'
     },
     {
