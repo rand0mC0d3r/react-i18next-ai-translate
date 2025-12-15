@@ -70,7 +70,7 @@ const writeJSON = (file, data) => {
 };
 
 
-const STEP_loadAndValidateSource = () => {
+const STEP_loadAndValidateSource = async () => {
   try {
     const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
@@ -166,7 +166,7 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
   }
 }
 
-const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
+const STEP_performTranslation = async () => {
   let combinedTranslations = [
     {
       "about.buildnumber": "Numéro de build :",
@@ -208,7 +208,7 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
 
   if (!mocks) {
     combinedTranslations = await Promise.all(
-      Array.from({ length: counts }).map((_, index) => doTranslateWithRetries(source, language, sourceFeatures, 3, index))
+      Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(interfaceMap.source, interfaceMap.activeLanguage, interfaceMap.sourceFeatures, 3, index))
     );
   }
 
@@ -421,10 +421,8 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
 }
 
 async function entropyEliminator(language, candidates) {
-  const counts = candidates
-  const { source, sourceFeatures } = STEP_loadAndValidateSource();
-  const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
-
+  await STEP_loadAndValidateSource();
+  await STEP_performTranslation();
   await STEP_performPeerCritique();
 
   // const updatedMismatches = mismatches.map((item, idx) => ({
