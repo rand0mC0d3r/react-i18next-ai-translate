@@ -378,7 +378,6 @@ const STEP_performPeerCritique = async (mismatches, language, counts) => {
     ],
   ]
 
-  console.log('\n✅ Peer critiques done.', combinedPeerReviews);
   return combinedPeerReviews
 }
 
@@ -400,12 +399,12 @@ async function entropyEliminator(language, file, candidates) {
   // return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
 
-  const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
-    ...item,
-    translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-    opinions: combinedPeerReviews.map(review => review[idx].opinion),
-    hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
-  }));
+  // const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
+  //   ...item,
+  //   translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+  //   opinions: combinedPeerReviews.map(review => review[idx].opinion),
+  //   hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
+  // }));
 
   const updatedMismatches = mismatches.map((item, idx) => ({
     ...item,
@@ -414,20 +413,21 @@ async function entropyEliminator(language, file, candidates) {
     result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
   }));
 
-  interfaceMap = { ...interfaceMap, mismatches: updatedMismatches };
+  interfaceMap = { ...interfaceMap, mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>') };
 
-  console.log('\n✅ Combined peer review results:', updatedMismatches);
-  const remainingTasks = combinedResults.filter(r => r.hasEntropy === '<<EntropyDetected>>')
-    .map(r => ({ ...r, opinion: 'Your opinion...', result: '' }))
-    .map(r => {
-      delete r.hasEntropy;
-      return r;
-    })
+  // console.log('\n✅ Combined peer review results:', updatedMismatches);
+  // const remainingTasks = combinedResults.filter(r => r.hasEntropy === '<<EntropyDetected>>')
+  //   .map(r => ({ ...r, opinion: 'Your opinion...', result: '' }))
+  //   .map(r => {
+  //     delete r.hasEntropy;
+  //     return r;
+  //   })
 
   const fixedTranslations = { ...translated };
-  for (const task of combinedResults.filter(r => r.hasEntropy === '')) {
+  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
     fixedTranslations[task.key] = task.result;
   }
+    interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
 
   return
 

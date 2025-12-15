@@ -53,13 +53,14 @@ const createMismatchesTreeNg = (grid, interfaceMap) => {
         alwaysScroll: true,
         content:
           `source:\n${m.source}\n\n` +
+          `opinion: ${m.opinion}\n` +
           `opinions:\n${(m.opinions || [])
             .map((o, j) => `  [${j + 1}] ${o}`)
             .join('\n')}\n\n` +
           `translations:\n${m.translations
             .map((t, j) => `  [${j + 1}] ${t}`)
             .join('\n')}\n\n` +
-          `result:\n${m.result}`
+          `result: ${m.result}`
       }
     )
   })
