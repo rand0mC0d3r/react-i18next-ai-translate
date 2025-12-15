@@ -18,16 +18,48 @@ const createTargetLanguages = (grid, interfaceMap) => {
 }
 
 const createSourceInput = (grid, interfaceMap) => {
-  grid.set(0, 0, rows - interfaceMap.candidates, 5, blessed.box, {
+  grid.set(0, 0, Math.round((rows - interfaceMap.candidates) / 2) - 1, 5, blessed.box, {
     label: 'Source Input',
     content: interfaceMap.originalInput
   })
 }
 
 const createSourceOutput = (grid, interfaceMap) => {
-  grid.set(0, cols -5, rows - interfaceMap.candidates, 5, blessed.box, {
+  grid.set(Math.round((rows - interfaceMap.candidates) / 2) -1 , 0, Math.round((rows - interfaceMap.candidates) / 2), 5, blessed.box, {
     label: 'Source Output',
     content: interfaceMap.out || '...no data yet',
+  })
+}
+
+const createMismatchesTreeNg = (grid, interfaceMap) => {
+const itemsPerColumn = 4
+  const boxHeight = 4
+  const boxWidth = 5
+
+  interfaceMap.mismatches.forEach((m, i) => {
+    const col = Math.floor(i / itemsPerColumn)
+    const row = i % itemsPerColumn
+
+    grid.set(
+      row * boxHeight,
+      5 + col * boxWidth,
+      boxHeight,
+      boxWidth,
+      blessed.box,
+      {
+        label: m.key,
+        border: 'line',
+        scrollable: true,
+        alwaysScroll: true,
+        content:
+          `source:\n${m.source}\n\n` +
+          `opinion:\n${m.opinion}\n\n` +
+          `translations:\n${m.translations
+            .map((t, j) => `  [${j + 1}] ${t}`)
+            .join('\n')}\n\n` +
+          `result:\n${m.result}`
+      }
+    )
   })
 }
 
@@ -78,7 +110,8 @@ export async function createInterface(interfaceMap) {
   // createTargetLanguages(grid, interfaceMap);
   createSourceInput(grid, interfaceMap);
   createSourceOutput(grid, interfaceMap);
-  createMismatchesTree(grid, interfaceMap);
+  // createMismatchesTree(grid, interfaceMap);
+  createMismatchesTreeNg(grid, interfaceMap);
 
   // Candidates box
   grid.set(rows - interfaceMap.candidates, 0, interfaceMap.candidates, cols, blessed.box, {
