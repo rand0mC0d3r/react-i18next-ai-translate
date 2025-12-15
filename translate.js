@@ -155,9 +155,10 @@ async function entropyEliminator(sourceDDD, language, file) {
 
   const fixedTranslations = { ...translated };
   for (const task of solvedTasks) {
-    fixedTranslations[task.originalSourceKey] = task.result;
+    fixedTranslations[task.key] = task.result;
   }
 
+  console.log('\n✅ Fixed translations before peer review:', translated);
   console.log('\n✅ Fixed translations after peer review:', fixedTranslations);
 
   console.log('✅ Combined peer review results:', combinedResults, remainingTasks.length, remainingTasks);
