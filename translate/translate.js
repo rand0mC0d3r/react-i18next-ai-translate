@@ -123,10 +123,10 @@ const doPeerReviewWithRetries = async (retries = 3, index = 0) => {
   }
 }
 
-const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 3) => {
+const doPeerReviewRemainingWithRetries = async (retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await doReviewRemainingTranslation(mismatches, language);
+      const result = await doReviewRemainingTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
       return result
     } catch (error) {
       console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
@@ -143,10 +143,13 @@ const STEP_loadAndValidateSource = async () => {
     const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
 
+    const targetFile = path.join(ROOT, `public/locales/${interfaceMap.activeLanguage}/translation.json`);
+
     interfaceMap = {
       ...interfaceMap,
       originalInput: JSON.stringify(source, null, 2), //deprecate
       source,
+      reference: fs.existsSync(targetFile) ? JSON.stringify(readJSON(targetFile), null, 2) : '...no reference file found',
       sourceFeatures
     };
 
@@ -409,64 +412,127 @@ const STEP_performPeerCritique = async () => {
   };
 }
 
-const STEP_performPeerRemainingCritique = async (mismatches, language, counts) => {
-  console.log('PERFORM REVIEW');
- const combinedPeerReviews = await Promise.all(
-   Array.from({ length: counts }).map(() => doPeerReviewRemainingWithRetries(mismatches, language))
-  );
+const STEP_performPeerRemainingCritique = async () => {
+  let combinedPeerReviews = [
+    [
+      {
+        key: "about.copyright",
+        opinion: "The opinions provided suggest a preference for the plural form 'Droits d'auteur' over the singular 'Droit d'auteur'. The first translation 'Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' is indeed the correct and more standard phrasing in French. The second translation uses the singular form, which is less common and thus less preferable. The opinions align with this assessment, and therefore, the first translation is the best choice.",
+        result: "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+      },
+      {
+        key: "about.dbversion",
+        opinion: "The opinions indicate that both translations are correct, with a slight preference for the second translation due to its clarity and formality. The second translation 'Version du schéma de la base de données :' includes 'de la' which makes the phrase slightly more formal and clear, aligning with the opinions that it is preferable for clarity. Therefore, the second translation is the best choice.",
+        result: "Version du schéma de la base de données :",
+      },
+    ],
+    [
+      {
+        key: "about.copyright",
+        source: "Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved",
+        translations: [
+          "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        ],
+        opinion: "The term 'Droits d'auteur' (plural) is the standard and more commonly used expression in French for 'Copyright'. The first translation uses the plural form and is therefore more appropriate. The second translation uses the singular 'Droit d'auteur', which is less common and less idiomatic. Given the opinions and the translations, the first translation is the best choice.",
+        result: "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        opinions: [
+          "All translations are correct. The second translation 'Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' uses a more standard phrasing in French.",
+          "The correct French term is 'Droits d'auteur' (plural). The first translation uses the singular 'Droit d'auteur' which is less common. The third translation keeps 'Copyright' in English, which is less localized. Therefore, the second translation is the best choice.",
+          "All translations are correct, but 'Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' is more commonly used in French.",
+        ],
+      },
+      {
+        key: "about.dbversion",
+        source: "Database Schema Version:",
+        translations: [
+          "Version du schéma de base de données :",
+          "Version du schéma de la base de données :",
+        ],
+        opinion: "Both translations are correct and natural. The first translation 'Version du schéma de base de données :' is slightly more fluent and concise, while the second 'Version du schéma de la base de données :' is more formal and explicit. Considering clarity and common usage, the second translation is preferable for formal documentation contexts. Therefore, the second translation is the best choice.",
+        result: "Version du schéma de la base de données :",
+        opinions: [
+          "Both translations are correct, but 'Version du schéma de base de données :' is slightly more fluent and clear.",
+          "Both translations are correct and natural. The second one is slightly more formal and clearer by including 'de la base de données'. It is preferable for clarity.",
+          "Both translations are correct and mean the same thing.",
+        ],
+      },
+    ],
+    [
+      {
+        key: "about.copyright",
+        source: "Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved",
+        translations: [
+          "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+          "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        ],
+        opinion: "Both translations are grammatically correct and convey the same meaning as the original source. However, the term 'Droits d'auteur' is more commonly used in French, making the first translation slightly more preferable. The second translation, while correct, uses the singular form 'Droit d'auteur', which is less common.",
+        result: "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+        opinions: [
+          "All translations are correct. The second translation 'Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' uses a more standard phrasing in French.",
+          "The correct French term is 'Droits d'auteur' (plural). The first translation uses the singular 'Droit d'auteur' which is less common. The third translation keeps 'Copyright' in English, which is less localized. Therefore, the second translation is the best choice.",
+          "All translations are correct, but 'Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés' is more commonly used in French.",
+        ],
+      },
+      {
+        key: "about.dbversion",
+        source: "Database Schema Version:",
+        translations: [
+          "Version du schéma de base de données :",
+          "Version du schéma de la base de données :",
+        ],
+        opinion: "Both translations are correct and convey the same meaning. However, the second translation 'Version du schéma de la base de données :' provides a bit more clarity by specifying 'de la base de données'. This makes it slightly more preferable.",
+        result: "Version du schéma de la base de données :",
+        opinions: [
+          "Both translations are correct, but 'Version du schéma de base de données :' is slightly more fluent and clear.",
+          "Both translations are correct and natural. The second one is slightly more formal and clearer by including 'de la base de données'. It is preferable for clarity.",
+          "Both translations are correct and mean the same thing.",
+        ],
+      },
+    ],
+  ]
 
-  console.log('\n✅ Peer critiques done.', combinedPeerReviews);
-  return combinedPeerReviews
+  if (!mocks) {
+    combinedPeerReviews = await Promise.all(
+      Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewRemainingWithRetries(3, index))
+    );
+  }
+
+  const updatedMismatches = interfaceMap.mismatches.map((item, idx) => ({
+      ...item,
+      translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+      opinions: combinedPeerReviews.map(review => review[idx].opinion),
+      result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
+  }));
+
+  const fixedTranslations = { ...JSON.parse(interfaceMap.out) };
+  for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
+    fixedTranslations[task.key] = task.result;
+  }
+
+  interfaceMap = {
+    ...interfaceMap,
+    mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>'),
+    out: JSON.stringify(fixedTranslations, null, 2)
+  };
 }
 
 async function entropyEliminator(language) {
   await STEP_loadAndValidateSource();
   await STEP_performTranslation();
   await STEP_performPeerCritique();
+  await STEP_performPeerRemainingCritique();
 
-  // const updatedMismatches = mismatches.map((item, idx) => ({
-  //   ...item,
-  //   translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
-  //   opinions: combinedPeerReviews.map(review => review[idx].opinion),
-  //   result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
-  // }));
+  // const translated = await translate(source, lang);
+  // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
 
-  // interfaceMap = { ...interfaceMap, mismatches: updatedMismatches.filter(r => r.result === '<<EntropyDetected>>') };
-
-
-  // const fixedTranslations = { ...translated };
-  // for (const task of updatedMismatches.filter(r => r.hasEntropy !== '<<EntropyDetected>>')) {
-  //   fixedTranslations[task.key] = task.result;
+  // if (!fs.existsSync(targetFile)) {
+  //   fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+  //   fs.writeFileSync(targetFile, '{}');
   // }
-  // interfaceMap = { ...interfaceMap, out: JSON.stringify(fixedTranslations, null, 2) };
 
-  return
-
-  if(remainingTasks.length > 0) {
-    console.log('\n🔄 Remaining tasks to resolve entropy:', remainingTasks.length, remainingTasks);
-
-    const finalResults = await STEP_performPeerRemainingCritique(remainingTasks, language, counts);
-    console.log('\n✅ Final peer critiques done.', finalResults);
-
-  }
-
-  console.log('\n✅ Fixed translations before peer review:', translated);
-  console.log('\n✅ Fixed translations after peer review:', fixedTranslations);
-
-  console.log('✅ Combined peer review results:', combinedResults, remainingTasks.length, remainingTasks);
-
-
- // console.log(`➡️  Language: ${lang}`);
-    // const translated = await translate(source, lang);
-    // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
-
-    // if (!fs.existsSync(targetFile)) {
-    //   fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-    //   fs.writeFileSync(targetFile, '{}');
-    // }
-
-    // writeJSON(targetFile, translated);
-    // console.log('✅ Done:', targetFile);
+  // writeJSON(targetFile, translated);
+  // console.log('✅ Done:', targetFile);
 }
 
 (async () => {

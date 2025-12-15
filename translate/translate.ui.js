@@ -2,8 +2,8 @@ import blessed from 'blessed';
 import contrib from 'blessed-contrib';
 import 'dotenv/config';
 
-const rows = 20
-const cols = 20
+const rows = 21
+const cols = 21
 
 const createTargetLanguages = (grid, interfaceMap) => {
   return grid.set(0, 0, 1, 4, blessed.box, {
@@ -18,16 +18,26 @@ const createTargetLanguages = (grid, interfaceMap) => {
 }
 
 const createSourceInput = (grid, interfaceMap) => {
-  grid.set(0, 0, Math.round((rows - interfaceMap.candidates) / 2) - 1, 5, blessed.box, {
+  grid.set(0, 0, 7, 5, blessed.box, {
+    style: {
+      bg: 'black',
+    },
     label: 'Source Input',
     content: interfaceMap.originalInput
   })
 }
 
 const createSourceOutput = (grid, interfaceMap) => {
-  grid.set(Math.round((rows - interfaceMap.candidates) / 2) -1 , 0, Math.round((rows - interfaceMap.candidates) / 2), 5, blessed.box, {
+  grid.set(7, 0, 7, 5, blessed.box, {
     label: 'Source Output',
     content: interfaceMap.out || '...no data yet',
+  })
+}
+
+const createSourceReference = (grid, interfaceMap) => {
+  grid.set(14, 0, 7, 5, blessed.box, {
+    label: 'Reference',
+    content: interfaceMap.reference || '...no data yet',
   })
 }
 
@@ -42,7 +52,7 @@ const createMismatchesTreeNg = (grid, interfaceMap) => {
 
     grid.set(
       row * boxHeight,
-      5 + col * boxWidth,
+      6 + col * boxWidth,
       boxHeight,
       boxWidth,
       blessed.box,
@@ -117,18 +127,7 @@ const createLogsBox = (grid, interfaceMap) => {
   })
 }
 
-export async function createInterface(interfaceMap) {
-  let screen = blessed.screen()
-
-  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
-
-  // createTargetLanguages(grid, interfaceMap);
-  createSourceInput(grid, interfaceMap);
-  createSourceOutput(grid, interfaceMap);
-  // createMismatchesTree(grid, interfaceMap);
-  createMismatchesTreeNg(grid, interfaceMap);
-
-  // Candidates box
+const createCandidates = (grid, interfaceMap) => {
   grid.set(rows - interfaceMap.candidates, 0, interfaceMap.candidates, cols, blessed.box, {
     label: 'Candidates' + ` [${interfaceMap.candidates}]`,
     style: {
@@ -142,5 +141,21 @@ export async function createInterface(interfaceMap) {
         : 'No calls made.'
       }`).join('\n\n')}`
   })
+}
+
+export async function createInterface(interfaceMap) {
+  let screen = blessed.screen()
+
+  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
+
+  // createTargetLanguages(grid, interfaceMap);
+  createSourceInput(grid, interfaceMap);
+  createSourceOutput(grid, interfaceMap);
+  createSourceReference(grid, interfaceMap);
+  // createMismatchesTree(grid, interfaceMap);
+  createMismatchesTreeNg(grid, interfaceMap);
+
+  // createCandidates(grid, interfaceMap);
+
   screen.render()
 }

@@ -113,7 +113,7 @@ export async function doReviewTranslation(mismatches, language, index = 0, callb
   }
 }
 
-export async function doReviewRemainingTranslation(mismatches, language) {
+export async function doReviewRemainingTranslation(mismatches, language, index = 0, callback = () => {}) {
   const messages = [
     {
       role: 'system',
@@ -132,7 +132,7 @@ export async function doReviewRemainingTranslation(mismatches, language) {
   ]
 
   try {
-    return await translate(language, messages);
+    return await translate(language, messages, index, callback, 'ReviewRemaining');
   } catch (err) {
     console.error('Translation error:', err.message);
     throw e;
