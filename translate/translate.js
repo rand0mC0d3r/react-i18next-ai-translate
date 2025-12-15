@@ -20,6 +20,12 @@ if (!cfg) {
   throw new Error('Missing i18next-ai-translate config in package.json');
 }
 
+const guidance = [
+  'Instead of build use compilation for French',
+  'Instead of depuis use derrière for French',
+  'Instead of droits d\'auteur use copyright for French',
+];
+
 const {
 rootFile,
 targetLanguages,
@@ -90,7 +96,7 @@ const writeJSON = (file, data) => {
 const doTranslateWithRetries = async (retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog);
+      const result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog, guidance);
       const validateResults = validateTranslation(interfaceMap.sourceFeatures, result);
 
       if (validateResults.length > 0) {
@@ -517,10 +523,12 @@ const STEP_performPeerRemainingCritique = async () => {
   };
 }
 
-async function entropyEliminator(language) {
+async function entropyEliminator() {
   await STEP_loadAndValidateSource();
   await STEP_performTranslation();
   await STEP_performPeerCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_performPeerRemainingCritique();
   await STEP_performPeerRemainingCritique();
 
   // const translated = await translate(source, lang);

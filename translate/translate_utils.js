@@ -63,7 +63,7 @@ export async function translate(language, messages, index, callback = () => {}, 
   return JSON.parse(processedJson);
 }
 
-export async function doTranslate(source, language, index = 0, callback = () => {}) {
+export async function doTranslate(source, language, index = 0, callback = () => {}, guidance) {
   const messages = [
     {
       role: 'system',
@@ -72,6 +72,7 @@ export async function doTranslate(source, language, index = 0, callback = () => 
         `Translate JSON values from developer English to ${language}. ` +
         'Do not change keys. Preserve nesting, placeholders, interpolations and HTML tags. The template syntax is i18next. ' +
         'Return ONLY valid JSON keeping the previous format unchanged. Do not wrap it in a new object.'
+        + (guidance && guidance.length > 0 ? ` Here is some additional guidance for you: ${guidance.join(' ')}` : '')
     },
     {
       role: 'user',
