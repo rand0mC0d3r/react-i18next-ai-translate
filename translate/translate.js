@@ -409,9 +409,9 @@ async function entropyEliminator(language, file, candidates) {
 
   const updatedMismatches = mismatches.map((item, idx) => ({
     ...item,
-    // translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
+    translations: [...new Set(combinedPeerReviews.map(review => review[idx].result))],
     opinions: combinedPeerReviews.map(review => review[idx].opinion),
-    // hasEntropy: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? '' : '<<EntropyDetected>>',
+    result: [...new Set(combinedPeerReviews.map(review => review[idx].result))].length === 1 ? combinedPeerReviews[0][idx].result : '<<EntropyDetected>>',
   }));
 
   interfaceMap = { ...interfaceMap, mismatches: updatedMismatches };
