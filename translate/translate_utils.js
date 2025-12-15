@@ -23,13 +23,13 @@ if (!apiKey) {
   process.exit(1);
 }
 
-export async function translate(language, messages, index, callback = () => {}) {
+export async function translate(language, messages, index, callback = () => {}, reason = '') {
   const t0 = performance.now();
   const modelsToPickFrom = Math.random() < 0.5 ? models : models.reverse();
   const model = modelsToPickFrom[engineUsedIndex];
 
   engineUsedIndex >= models.length - 1 ? engineUsedIndex = 0 : engineUsedIndex++;
-  callback(model, index, `starting`, 0);
+  callback(model, index, `starting`, 0, reason);
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -44,7 +44,7 @@ export async function translate(language, messages, index, callback = () => {}) 
     })
   });
   const t1 = performance.now()
-  callback(model, index, `${res.status} ${res.statusText}`, (t1 - t0).toFixed(2));
+  callback(model, index, `${res.status} ${res.statusText}`, (t1 - t0).toFixed(2), reason);
 
   if (!res.ok) {
     throw new Error(await res.text());
@@ -80,14 +80,14 @@ export async function doTranslate(source, language, index = 0, callback = () => 
   ]
 
   try {
-    return await translate(language, messages, index, callback);
+    return await translate(language, messages, index, callback, 'Translation');
   } catch (err) {
     console.error('Translation error:', err.message);
     throw e;
   }
 }
 
-export async function doReviewTranslation(mismatches, language) {
+export async function doReviewTranslation(mismatches, language, index = 0, callback = () => {}) {
   const messages = [
     {
       role: 'system',
@@ -106,7 +106,7 @@ export async function doReviewTranslation(mismatches, language) {
   ]
 
   try {
-    return await translate(language, messages);
+    return await translate(language, messages, index = 0, callback = () => {}, 'Review');
   } catch (err) {
     console.error('Translation error:', err.message);
     throw e;

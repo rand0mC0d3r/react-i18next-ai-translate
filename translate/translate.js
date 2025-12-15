@@ -61,6 +61,24 @@ const appendLog = (msg) => {
   interfaceMap = { ...interfaceMap, logs: [...interfaceMap.logs, `[${timestamp}] ${msg}`] };
 }
 
+const emitTranslationLog = (model, index, status, duration, reason) => {
+  interfaceMap = {
+    ...interfaceMap,
+    callsLogs: {
+      ...interfaceMap.callsLogs,
+      [index]: [
+        ...(interfaceMap.callsLogs[index] || []),
+        {
+          reason,
+          model,
+          status,
+          duration,
+        }
+      ]
+    }
+  }
+}
+
 const readJSON = (file) =>
   JSON.parse(fs.readFileSync(file, 'utf-8'));
 
@@ -69,57 +87,11 @@ const writeJSON = (file, data) => {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 };
 
-
-const STEP_loadAndValidateSource = async () => {
-  try {
-    const source = readJSON(interfaceMap.rootFile);
-    const sourceFeatures = extractFeatures(source);
-
-    interfaceMap = {
-      ...interfaceMap,
-      originalInput: JSON.stringify(source, null, 2), //deprecate
-      source,
-      sourceFeatures
-    };
-
-    const sourceErrors = validateTranslation(sourceFeatures, source);
-
-    if (sourceErrors.length > 0) {
-      console.error('❌ Source validation errors found:', sourceErrors);
-      process.exit(1);
-    }
-
-    return { source, sourceFeatures };
-  } catch (e) {
-    console.error('❌ Error loading or validating source file:', e.message);
-    process.exit(1);
-  }
-}
-
-const doTranslateWithRetries = async (source, language, sourceFeatures, retries = 3, index = 0) => {
+const doTranslateWithRetries = async (retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const emitTranslationLog = (model, index, status, duration) => {
-        interfaceMap = {
-          ...interfaceMap,
-          callsLogs: {
-            ...interfaceMap.callsLogs,
-            [index]: [
-              ...(interfaceMap.callsLogs[index] || []),
-              {
-                reason: 'translation',
-                model,
-                status,
-                duration,
-              }
-            ]
-          }
-        }
-      }
-
-
-      const result = await doTranslate(source, language, index, emitTranslationLog);
-      const validateResults = validateTranslation(sourceFeatures, result);
+      const result = await doTranslate(interfaceMap.source, interfaceMap.activeLanguage, index, emitTranslationLog);
+      const validateResults = validateTranslation(interfaceMap.sourceFeatures, result);
 
       if (validateResults.length > 0) {
         throw new Error(`Validation failed with ${validateResults.length} errors.`);
@@ -136,10 +108,10 @@ const doTranslateWithRetries = async (source, language, sourceFeatures, retries 
   }
 }
 
-const doPeerReviewWithRetries = async (mismatches, language, retries = 3) => {
+const doPeerReviewWithRetries = async (retries = 3, index = 0) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const result = await doReviewTranslation(mismatches, language);
+      const result = await doReviewTranslation(interfaceMap.mismatches, interfaceMap.activeLanguage, index, emitTranslationLog);
       return result
     } catch (error) {
       console.error(`❌ Translation attempt ${attempt} failed:`, error.message);
@@ -163,6 +135,33 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
       }
       console.log('🔄 Retrying translation...');
     }
+  }
+}
+
+const STEP_loadAndValidateSource = async () => {
+  try {
+    const source = readJSON(interfaceMap.rootFile);
+    const sourceFeatures = extractFeatures(source);
+
+    interfaceMap = {
+      ...interfaceMap,
+      originalInput: JSON.stringify(source, null, 2), //deprecate
+      source,
+      sourceFeatures
+    };
+
+    const sourceErrors = validateTranslation(sourceFeatures, source);
+
+    if (sourceErrors.length > 0) {
+      console.error('❌ Source validation errors found:', sourceErrors);
+      process.exit(1);
+    }
+
+
+    return { source, sourceFeatures };
+  } catch (e) {
+    console.error('❌ Error loading or validating source file:', e.message);
+    process.exit(1);
   }
 }
 
@@ -208,7 +207,7 @@ const STEP_performTranslation = async () => {
 
   if (!mocks) {
     combinedTranslations = await Promise.all(
-      Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(interfaceMap.source, interfaceMap.activeLanguage, interfaceMap.sourceFeatures, 3, index))
+      Array.from({ length: interfaceMap.candidates }).map((_, index) => doTranslateWithRetries(3, index))
     );
   }
 
@@ -387,7 +386,7 @@ const STEP_performPeerCritique = async () => {
 
   if (!mocks) {
     combinedPeerReviews = await Promise.all(
-      Array.from({ length: interfaceMap.candidates }).map(() => doPeerReviewWithRetries(interfaceMap.mismatches, interfaceMap.activeLanguage))
+      Array.from({ length: interfaceMap.candidates }).map((_, index) => doPeerReviewWithRetries(3, index))
     );
   }
 
@@ -420,7 +419,7 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
   return combinedPeerReviews
 }
 
-async function entropyEliminator(language, candidates) {
+async function entropyEliminator(language) {
   await STEP_loadAndValidateSource();
   await STEP_performTranslation();
   await STEP_performPeerCritique();
