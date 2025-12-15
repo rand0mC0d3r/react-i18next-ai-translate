@@ -66,23 +66,23 @@ const SOURCE_FILE = rootFile
 
 const appendLog = (msg) => {
   const timestamp = new Date().toLocaleTimeString();
-  interfaceMap = { ...interfaceMap, logs: [...interfaceMap.logs, `[${timestamp}] ${msg}`] };
+  interfaceMap = { ...interfaceMap, logs: [...interfaceMap.logs, `{gray-fg}[${timestamp}]{/} ${msg}`] };
 }
 
 export const appendSuccessLog = (msg) => {
-  appendLog(`✅ ${msg}`);
+  appendLog(`{green-fg}#{/} ${msg}`);
 }
 
 export const appendWarningLog = (msg) => {
-  appendLog(`⚠️ ${msg}`);
+  appendLog(`{yellow-fg}#{/} ${msg}`);
 }
 
 export const appendInfoLog = (msg) => {
-  appendLog(`ℹ️ ${msg}`);
+  appendLog(`{blue-fg}#{/} ${msg}`);
 }
 
 export const appendErrorLog = (msg) => {
-  appendLog(`❌ ${msg}`);
+  appendLog(`{red-fg}#{/} ${msg}`);
 }
 
 const emitTranslationLog = (model, index, status, duration, reason) => {
