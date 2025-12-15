@@ -1,11 +1,10 @@
-import blessed from 'blessed';
-import contrib from 'blessed-contrib';
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
+import { createInterface } from './translate.ui.js';
 import { doReviewRemainingTranslation, doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
 import { infoStep, separator } from './utils.js';
 
@@ -28,7 +27,11 @@ options = {},
 } = cfg;
 
 let interfaceMap = {
-  originalInput: '...no data yet'
+  originalInput: '...no data yet',
+  mismatches: [],
+  logs: [],
+  languages: 'fr,dfsd',
+  activeLanguage: '',
 }
 
 // ---- sanity ------------------------------------------------
@@ -46,6 +49,11 @@ const ROOT = process.cwd();
 const SOURCE_FILE = rootFile
 
 // ---- helpers -----------------------------------------------
+
+const appendLog = (msg) => {
+  const timestamp = new Date().toISOString();
+  interfaceMap = { ...interfaceMap, logs: [...interfaceMap.logs, `[${timestamp}] ${msg}`] };
+}
 
 const readJSON = (file) =>
   JSON.parse(fs.readFileSync(file, 'utf-8'));
@@ -133,15 +141,54 @@ const doPeerReviewRemainingWithRetries = async (mismatches, language, retries = 
 }
 
 const STEP_performTranslation = async (source, language, sourceFeatures, counts) => {
-console.log('SPAWNING TRANSLATORS');
- const combinedTranslations = await Promise.all(
-    Array.from({ length: counts }).map(() => doTranslateWithRetries(source, language, sourceFeatures))
-  );
+  console.log('SPAWNING TRANSLATORS');
+
+  const combinedTranslations = [
+  {
+    "about.buildnumber": "Numéro de build :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Droit d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date du build :",
+    "about.dbversion": "Version du schéma de la base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne depuis votre pare-feu.",
+    "about.hash": "Hash du build :",
+  },
+  {
+    "about.buildnumber": "Numéro de version :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Droits d'auteur 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date de création :",
+    "about.dbversion": "Version du schéma de la base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de confiance élevée pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+    "about.hash": "Hachage de création :",
+  },
+  {
+    "about.buildnumber": "Numéro de build :",
+    "about.cloudEdition": "Cloud",
+    "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. Tous droits réservés",
+    "about.database": "Base de données :",
+    "about.date": "Date de build :",
+    "about.dbversion": "Version du schéma de base de données :",
+    "about.enterpriseEditionLearn": "En savoir plus sur Mattermost {planName} à ",
+    "about.enterpriseEditionSst": "Messagerie de haute confiance pour l'entreprise",
+    "about.enterpriseEditionSt": "Communication moderne derrière votre pare-feu.",
+    "about.hash": "Hash de build :",
+  },
+]
+//  const combinedTranslations = await Promise.all(
+//     Array.from({ length: counts }).map(() => doTranslateWithRetries(source, language, sourceFeatures))
+//   );
   console.log('\n✅ Initial translations done.', combinedTranslations);
 
   const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
   console.log('\n✅ Entropy collapse results:', traverseResults);
-
+  interfaceMap = { ...interfaceMap, mismatches: traverseResults.mismatches };
   separator();
 
   return traverseResults;
@@ -167,14 +214,16 @@ const STEP_performPeerRemainingCritique = async (mismatches, language, counts) =
   return combinedPeerReviews
 }
 
-async function entropyEliminator(sourceDDD, language, file) {
+async function entropyEliminator(language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
 
-  return
+
+
   const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
+  return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
 
   const combinedResults = combinedPeerReviews[0].map((item, idx) => ({
@@ -213,56 +262,28 @@ async function entropyEliminator(sourceDDD, language, file) {
 
 }
 
-// ---- run ---------------------------------------------------
-
-async function createInterface() {
-  let screen = blessed.screen()
-  const rows = 12
-  const cols = 20
-
-  var grid = new contrib.grid({ rows, cols, screen })
-
-  //grid.set(row, col, rowSpan, colSpan, obj, opts)
-  // var map = grid.set(0, 0, 12,12, contrib.map, {label: 'World Map'})
-  var box = grid.set(0, 0, rows, 4, blessed.box, {
-    label: 'Source Input',
-    content: interfaceMap.originalInput
-  })
-
-  screen.render()
-}
-
-
-
 (async () => {
-
-  infoStep('🌍 Translating EN → FR', 'entropyEliminator');
-  separator();
-
-  entropyEliminator('', 'fr', SOURCE_FILE);
-
-  return;
+  interfaceMap = { ...interfaceMap, languages: targetLanguages };
+  appendLog(`Starting application with target languages: ${targetLanguages.join(', ')}`);
 
   for (const lang of targetLanguages) {
-    console.log(`➡️  Language: ${lang}`);
-    const translated = await translate(source, lang);
-    const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
+    interfaceMap = { ...interfaceMap, activeLanguage: lang };
+    await entropyEliminator(lang, SOURCE_FILE);
+    // console.log(`➡️  Language: ${lang}`);
+    // const translated = await translate(source, lang);
+    // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
 
-    if (!fs.existsSync(targetFile)) {
-      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-      fs.writeFileSync(targetFile, '{}');
-    }
+    // if (!fs.existsSync(targetFile)) {
+    //   fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+    //   fs.writeFileSync(targetFile, '{}');
+    // }
 
-    writeJSON(targetFile, translated);
-    console.log('✅ Done:', targetFile);
+    // writeJSON(targetFile, translated);
+    // console.log('✅ Done:', targetFile);
   }
 })();
 
 (async () => {
-
-  createInterface();
-
-  setInterval(() => {
-    createInterface();
-  }, 2000);
+  setInterval(() => { createInterface(interfaceMap) }, 1000);
+  createInterface(interfaceMap);
 })();

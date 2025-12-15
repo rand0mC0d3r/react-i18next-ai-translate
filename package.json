@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "try": "node ./translate.js",
-    "watch-try": "npx nodemon --watch ./translate.js --delay 1s translate.js",
+    "watch-try": "nodemon --watch translate --ext js --delay 1s translate/translate.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -26,7 +25,7 @@
   "i18next-ai-translate": {
     "rootFile": "public/locales/translation.1.json",
     "targetLanguages": [
-      "en",
+      "fr",
       "de"
     ],
     "targetRegions": [
