@@ -154,7 +154,13 @@ const createCandidates = (grid, interfaceMap) => {
 export async function createInterface(interfaceMap) {
   let screen = blessed.screen()
 
-  var grid = new contrib.grid({ rows, cols, screen, hideBorder: false });
+  var grid = new contrib.grid({
+    rows, cols, screen,
+    hideBorder: false,
+    keys: true,
+    mouse: true,
+    scrollable: true
+  });
 
   createSourceInput(grid, interfaceMap);
   createSourceOutput(grid, interfaceMap);
@@ -163,6 +169,11 @@ export async function createInterface(interfaceMap) {
 
   createCandidates(grid, interfaceMap);
   createLogsBox(grid, interfaceMap);
+
+  screen.key(['q', 'C-c'], () => {
+    screen.destroy()
+    process.exit(1)
+  })
 
   screen.render()
 }
