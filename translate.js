@@ -5,6 +5,7 @@ import process from 'process';
 import { extractFeatures } from './feature-extractor.js';
 import { validateTranslation } from './feature-validator.js';
 import { doReviewTranslation, doTranslate, traverseAndCollapseEntropy } from './translate_utils.js';
+import { infoStep } from './utils.js';
 
 // --- config loading ---
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
@@ -50,16 +51,25 @@ const writeJSON = (file, data) => {
 
 
 const STEP_loadAndValidateSource = (file) => {
-  const source = readJSON(file);
-  const sourceFeatures = extractFeatures(source);
-  const sourceErrors = validateTranslation(sourceFeatures, source);
+  try {
+    const source = readJSON(file);
+    infoStep('✅ Loaded file', file);
 
-  if (sourceErrors.length > 0) {
-    console.error('❌ Source validation errors found:', sourceErrors);
+    const sourceFeatures = extractFeatures(source);
+    const sourceErrors = validateTranslation(sourceFeatures, source);
+
+    if (sourceErrors.length > 0) {
+      console.error('❌ Source validation errors found:', sourceErrors);
+      process.exit(1);
+    }
+
+    infoStep('\n\n', );
+
+    return { source, sourceFeatures };
+  } catch (e) {
+    console.error('❌ Error loading or validating source file:', e.message);
     process.exit(1);
   }
-
-  return { source, sourceFeatures };
 }
 
 
@@ -103,8 +113,12 @@ const STEP_performTranslation = async (source, language, sourceFeatures, counts)
  const combinedTranslations = await Promise.all(
     Array.from({ length: counts }).map(() => doTranslateWithRetries(source, language, sourceFeatures))
   );
+  console.log('✅ Initial translations done.', combinedTranslations);
 
-  return combinedTranslations
+  const traverseResults = traverseAndCollapseEntropy(source, combinedTranslations);
+  console.log('✅ Entropy collapse results:', traverseResults);
+
+  return traverseResults;
 }
 
 const STEP_performPeerCritique = async (mismatches, language, counts) => {
@@ -119,13 +133,10 @@ async function entropyEliminator(sourceDDD, language, file) {
   const counts = 3
   const { source, sourceFeatures } = STEP_loadAndValidateSource(file);
 
-  const combinedTranslations = await STEP_performTranslation(source, language, sourceFeatures, counts);
-  console.log('✅ Initial translations done.', combinedTranslations);
+  // return
+  const { mismatches, out: translated } = await STEP_performTranslation(source, language, sourceFeatures, counts);
 
-  const { mismatches, out: translated } = traverseAndCollapseEntropy(source, combinedTranslations);
-  console.log('✅ Entropy collapse results:', mismatches.length, translated);
-
-  ///
+  return
   const combinedPeerReviews = await STEP_performPeerCritique(mismatches, language, counts);
   // const combinedPeerReviews = combinedPeerReviewsData
   console.log('✅ Peer critiques done.', combinedPeerReviews);

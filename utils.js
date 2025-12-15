@@ -5,7 +5,7 @@ export const debugStep = (message, action = "", detail = "") => {
     console.log(
       '%c%s %c%s %c%s %c%s',
       `color: yellow; font-weight:700`,
-      `: ${new Date().toLocaleString()} `,
+      `[${new Date().toLocaleTimeString()}]`,
       'color: #DAA520; font-weight:700',
       `[${action || 'debug'}]`,
       'color: #FF4288; font-weight:700',
@@ -20,7 +20,7 @@ export const infoStep = (message, action = "", detail = "") => {
     console.log(
       '%c%s %c%s %c%s %c%s',
       `color: yellow; font-weight:700`,
-      `: ${new Date().toLocaleString()} `,
+      `[${new Date().toLocaleTimeString()}]`,
       'color: #DAA520; font-weight:700',
       `[${action || 'debug'}]`,
       'color: #FF4288; font-weight:700',
