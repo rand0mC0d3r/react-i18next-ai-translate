@@ -576,13 +576,8 @@ const STEP_performPeerRemainingCritique = async () => {
   };
 }
 
-async function entropyEliminator() {
-  await STEP_loadAndValidateSource();
-  await STEP_performTranslation();
-  await STEP_performPeerCritique();
-  await STEP_performPeerRemainingCritique();
-  await STEP_performPeerRemainingCritique();
-  await STEP_performPeerRemainingCritique();
+const STEP_writeFile = async () => {
+  return;
 
   // const translated = await translate(source, lang);
   // const targetFile = path.join(ROOT, `public/locales/${lang}/translation.json`);
@@ -596,12 +591,22 @@ async function entropyEliminator() {
   // console.log('✅ Done:', targetFile);
 }
 
+async function entropyEliminator() {
+  await STEP_loadAndValidateSource();
+  await STEP_performTranslation();
+  await STEP_performPeerCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_writeFile();
+}
+
 (async () => {
   interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
 
   for (const lang of targetLanguages) {
     interfaceMap = { ...interfaceMap, activeLanguage: lang };
-    await entropyEliminator(lang, candidates);
+    await entropyEliminator();
   }
 })();
 

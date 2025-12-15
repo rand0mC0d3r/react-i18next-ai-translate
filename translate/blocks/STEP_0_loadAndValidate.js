@@ -8,10 +8,9 @@ import { appendErrorLog, appendSuccessLog, appendWarningLog } from '../translate
 
 const ROOT = process.cwd();
 
-const readJSON = (file) =>
-  JSON.parse(fs.readFileSync(file, 'utf-8'));
+const readJSON = (file) => JSON.parse(fs.readFileSync(file, 'utf-8'));
 
-export const STEP_loadAndValidateSource = async (interfaceMap) => {
+export const STEP_loadAndValidate = async (interfaceMap, callback = () => {}) => {
   try {
     const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
@@ -31,6 +30,7 @@ export const STEP_loadAndValidateSource = async (interfaceMap) => {
       reference: fs.existsSync(targetFile) ? JSON.stringify(readJSON(targetFile), null, 2) : '...no reference file found',
       sourceFeatures
     };
+    callback(interfaceMap);
 
     const sourceErrors = validateTranslation(sourceFeatures, source);
 
@@ -38,9 +38,6 @@ export const STEP_loadAndValidateSource = async (interfaceMap) => {
       appendErrorLog(`Source validation errors found: ${sourceErrors}`);
       process.exit(1);
     }
-
-
-    return { source, sourceFeatures };
   } catch (e) {
     appendErrorLog(`❌ Error loading or validating source file: ${e.message}`);
     process.exit(1);
