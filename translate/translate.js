@@ -475,7 +475,6 @@ const doPeerReviewRemainingWithRetries = async (retries = 3, index = 0) => {
 
 const STEP_loadAndValidateSource = async () => {
   try {
-    console.log('ddd')
     const source = readJSON(interfaceMap.rootFile);
     const sourceFeatures = extractFeatures(source);
     appendSuccessLog(`Source file loaded: ${interfaceMap.rootFile}`);
@@ -594,11 +593,6 @@ const STEP_writeFile = async () => {
 async function entropyEliminator() {
   await STEP_loadAndValidateSource();
   await STEP_performTranslation();
-
-  if (mocks) {
-    return
-  }
-
   await STEP_performPeerCritique();
   await STEP_performPeerRemainingCritique();
   await STEP_performPeerRemainingCritique();
