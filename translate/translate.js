@@ -592,13 +592,17 @@ const STEP_writeFile = async () => {
 }
 
 async function entropyEliminator() {
-  // await STEP_loadAndValidateSource();
-  // await STEP_performTranslation();
-  // await STEP_performPeerCritique();
-  // await STEP_performPeerRemainingCritique();
-  // await STEP_performPeerRemainingCritique();
-  // await STEP_performPeerRemainingCritique();
-  // await STEP_writeFile();
+  if (mocks) {
+    return
+  }
+
+  await STEP_loadAndValidateSource();
+  await STEP_performTranslation();
+  await STEP_performPeerCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_performPeerRemainingCritique();
+  await STEP_writeFile();
 }
 
 (async () => {
