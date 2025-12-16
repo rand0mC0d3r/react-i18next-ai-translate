@@ -23,23 +23,44 @@ const createTargetLanguages = (grid, interfaceMap) => {
 }
 
 const createSourceInput = (grid, interfaceMap) => {
+  let content = '...no data yet'
+
+  if (interfaceMap.originalInput) {
+    content = Object.entries(JSON.parse(interfaceMap.originalInput)).map((item, index) => `{gray-fg}${item[0]}{/} = ${item[1]}`).join('\n')
+  }
+
   grid.set(...sourceInput, blessed.box, {
     label: 'Source Input',
-    content: interfaceMap.originalInput || '...no data yet',
+    tags: true,
+    content,
   })
 }
 
 const createSourceOutput = (grid, interfaceMap) => {
+  let content = '...no data yet'
+
+  if (interfaceMap.out) {
+    content = Object.entries(JSON.parse(interfaceMap.out)).map((item, index) => `{gray-fg}${item[0]}{/} = ${item[1]}`).join('\n')
+  }
+
   grid.set(...sourceOutput, blessed.box, {
     label: 'Output',
-    content: interfaceMap.out || '...no data yet',
+    tags: true,
+    content,
   })
 }
 
 const createSourceReference = (grid, interfaceMap) => {
+  let content = '...no data yet'
+
+  if (interfaceMap.reference) {
+    content = Object.entries(JSON.parse(interfaceMap.reference)).map((item, index) => `{gray-fg}${item[0]}{/} = ${item[1]}`).join('\n')
+  }
+
   grid.set(...sourceReference, blessed.box, {
     label: 'Reference',
-    content: interfaceMap.reference || '...no data yet',
+    tags: true,
+    content,
   })
 }
 
