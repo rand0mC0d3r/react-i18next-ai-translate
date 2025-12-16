@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "watch-try": "nodemon --watch translate --ext js --delay 1s translate/translate.js",
+    "watch-try-ng": "node --watch translate/translate.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

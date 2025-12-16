@@ -188,7 +188,7 @@ const content = blessed.box({
   parent: screen,
   top: 0,
   left: 0,
-  width: '80%',
+  width: 130,
   height: '90%',
   label: ' Scrollable Content ',
   border: 'line',
@@ -202,7 +202,7 @@ const content = blessed.box({
     track: { bg: 'grey' },
     style: { bg: 'blue' },
   },
-  content: Array.from({ length: 100 }, (_, i) =>
+  content: Array.from({ length: 400 }, (_, i) =>
     `Line ${i + 1}: entropy is undefeated.`
   ).join('\n'),
 });
@@ -224,12 +224,12 @@ function makeButton({ left, text, onPress }) {
     keys: true,
     clickable: true,     // ← add this
     shrink: true,
-    padding: { left: 2, right: 2 },
+    padding: { left: 2, right: 2, top: 0, bottom: 0 },
     left,
-    top: 1,
+    // top: 1,
     name: text,
     content: text,
-    border: 'line',
+    border: 'bg',
     style: {
       fg: 'white',
       bg: 'black',
@@ -250,7 +250,7 @@ function makeButton({ left, text, onPress }) {
 
 // Buttons
 makeButton({
-  left: 2,
+  left: 0,
   text: 'Add Line',
   onPress: () => {
     content.pushLine(`New line @ ${new Date().toLocaleTimeString()}`);
@@ -260,7 +260,7 @@ makeButton({
 });
 
 makeButton({
-  left: 16,
+  left: 13,
   text: 'Clear',
   onPress: () => {
     content.setContent('');
@@ -273,6 +273,55 @@ makeButton({
   text: 'Exit',
   onPress: () => process.exit(0),
 });
+makeButton({
+  left: 38,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 48,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 58,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 68,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 78,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+
+
+  makeButton({
+  left: 88,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 98,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 108,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+makeButton({
+  left: 118,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+
+
 
 // Focus order
 content.focus();
