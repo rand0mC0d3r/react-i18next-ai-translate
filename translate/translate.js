@@ -590,32 +590,32 @@ const STEP_writeFile = async () => {
   // console.log('✅ Done:', targetFile);
 }
 
-async function entropyEliminator() {
-  await STEP_loadAndValidateSource();
-  await STEP_performTranslation();
-  await STEP_performPeerCritique();
-  await STEP_performPeerRemainingCritique();
-  await STEP_performPeerRemainingCritique();
-  await STEP_performPeerRemainingCritique();
-  await STEP_writeFile();
-}
+// async function entropyEliminator() {
+//   await STEP_loadAndValidateSource();
+//   await STEP_performTranslation();
+//   await STEP_performPeerCritique();
+//   await STEP_performPeerRemainingCritique();
+//   await STEP_performPeerRemainingCritique();
+//   await STEP_performPeerRemainingCritique();
+//   await STEP_writeFile();
+// }
+
+// (async () => {
+//   interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
+
+//   for (const lang of targetLanguages) {
+//     interfaceMap = { ...interfaceMap, activeLanguage: lang };
+//     await entropyEliminator();
+//   }
+// })();
 
 (async () => {
-  interfaceMap = { ...interfaceMap, languages: targetLanguages, candidates };
-
-  for (const lang of targetLanguages) {
-    interfaceMap = { ...interfaceMap, activeLanguage: lang };
-    await entropyEliminator();
-  }
-})();
-
-(async () => {
-  setInterval(() => {
-    const newSizeHash = JSON.stringify(interfaceMap).length;
-    if (newSizeHash !== lastRenderedSizeHash) {
-      createInterface(interfaceMap)
-      lastRenderedSizeHash = newSizeHash;
-    }
-  }, 100);
+  // setInterval(() => {
+  //   const newSizeHash = JSON.stringify(interfaceMap).length;
+  //   if (newSizeHash !== lastRenderedSizeHash) {
+  //     createInterface(interfaceMap)
+  //     lastRenderedSizeHash = newSizeHash;
+  //   }
+  // }, 100);
   createInterface(interfaceMap);
 })();

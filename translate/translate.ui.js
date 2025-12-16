@@ -173,28 +173,137 @@ const createCandidates = (grid, interfaceMap) => {
 }
 
 export async function createInterface(interfaceMap) {
-  let screen = blessed.screen()
-
-  var grid = new contrib.grid({
-    rows, cols, screen,
-    hideBorder: false,
-    keys: true,
+  let screen = blessed.screen({
+    smartCSR: true,
+    title: 'Blessed Demo',
     mouse: true,
-    scrollable: true
-  });
-
-  createSourceInput(grid, interfaceMap);
-  createSourceOutput(grid, interfaceMap);
-  createSourceReference(grid, interfaceMap);
-  createMismatchesTreeNg(grid, interfaceMap);
-
-  createCandidates(grid, interfaceMap);
-  createLogsBox(grid, interfaceMap);
-
-  screen.key(['q', 'C-c'], () => {
-    screen.destroy()
-    process.exit(1)
+    keys: true,
+    forceMouse: true,   // ← important on Windows
+    fullUnicode: true,
   })
 
-  screen.render()
+  screen.key(['q', 'C-c', 'escape'], () => process.exit(0));
+
+const content = blessed.box({
+  parent: screen,
+  top: 0,
+  left: 0,
+  width: '80%',
+  height: '90%',
+  label: ' Scrollable Content ',
+  border: 'line',
+  scrollable: true,
+  alwaysScroll: true,
+  keys: true,
+  vi: true,
+  mouse: true,
+  scrollbar: {
+    ch: ' ',
+    track: { bg: 'grey' },
+    style: { bg: 'blue' },
+  },
+  content: Array.from({ length: 100 }, (_, i) =>
+    `Line ${i + 1}: entropy is undefeated.`
+  ).join('\n'),
+});
+
+// Button container
+const buttons = blessed.box({
+  parent: screen,
+  bottom: 0,
+  left: 0,
+  width: '80%',
+  height: '10%',
+});
+
+// Button helper
+function makeButton({ left, text, onPress }) {
+  const btn = blessed.button({
+    parent: buttons,
+    mouse: true,
+    keys: true,
+    clickable: true,     // ← add this
+    shrink: true,
+    padding: { left: 2, right: 2 },
+    left,
+    top: 1,
+    name: text,
+    content: text,
+    border: 'line',
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: { fg: 'cyan' },
+      focus: {
+        bg: 'blue',
+        border: { fg: 'white' },
+      },
+      hover: {
+        bg: 'green',
+      },
+    },
+  });
+
+  btn.on('press', onPress);
+  return btn;
+}
+
+// Buttons
+makeButton({
+  left: 2,
+  text: 'Add Line',
+  onPress: () => {
+    content.pushLine(`New line @ ${new Date().toLocaleTimeString()}`);
+    content.setScrollPerc(100);
+    screen.render();
+  },
+});
+
+makeButton({
+  left: 16,
+  text: 'Clear',
+  onPress: () => {
+    content.setContent('');
+    screen.render();
+  },
+});
+
+makeButton({
+  left: 28,
+  text: 'Exit',
+  onPress: () => process.exit(0),
+});
+
+// Focus order
+content.focus();
+
+
+
+// Render
+screen.render();
+
+
+
+  // var grid = new contrib.grid({
+  //   rows, cols, screen,
+  //   hideBorder: false,
+  //   keys: true,
+  //   mouse: true,
+  //   scrollable: true
+  // });
+
+  // createSourceInput(grid, interfaceMap);
+  // createSourceOutput(grid, interfaceMap);
+  // createSourceReference(grid, interfaceMap);
+  // createMismatchesTreeNg(grid, interfaceMap);
+  // createMismatchesTree(grid, interfaceMap);
+  // createCandidates(grid, interfaceMap);
+  // createLogsBox(grid, interfaceMap);
+
+  // screen.key(['q', 'C-c'], () => {
+  //   screen.destroy()
+  //   process.exit(1)
+  // })
+
+  // screen.render()
 }
